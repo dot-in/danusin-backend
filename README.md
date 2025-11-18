@@ -1,369 +1,376 @@
 # Danus.in API
 
-## Spesifikasi Teknis
+Modern RESTful API untuk platform Pre-Order mahasiswa, dibangun dengan Express.js 5, TypeScript 5.7, dan MySQL.
 
-- Runtime: Node.js (TypeScript, ESM)
-- Framework: Express 5.x
-- Database: MySQL (mysql2/promise + `pool.execute`)
-- Auth: JWT (Access Token)
-- Security: Helmet, CORS
-- Validasi: Zod v4
-- Logging: Morgan
+## 🚀 Tech Stack
 
-## Fitur Utama
+- **Runtime**: Node.js 22+
+- **Framework**: Express.js 5.1
+- **Language**: TypeScript 5.7
+- **Database**: MySQL 8.0+
+- **Validation**: Zod 4.1
+- **Authentication**: JWT (jsonwebtoken 9.0)
+- **Security**: Helmet 8.1, bcrypt 6.0
+- **Logging**: Pino 9.5
+- **Code Quality**: Biome 1.9
+- **Dev Tools**: tsx 4.19
 
-- Autentikasi:
-  - Register: Buyer (whatsapp opsional), Seller (whatsapp wajib)
-  - Login dengan NIM atau Email
-  - Profil: get & update
-  - Upgrade Buyer -> Seller (wajib whatsapp jika belum tersimpan)
-- Produk (Seller):
-  - CRUD Produk
-  - Tanggal PO dengan aturan: open <= close, delivery >= close
-- Pencarian & Filter Produk:
-  - Query: q, min_price, max_price, open_only
-- Pesanan (PO):
-  - Buyer membuat order dalam periode PO
-  - Seller melihat pesanan masuk & update status
-  - Status: Menunggu Pembayaran -> Diproses -> Siap Diambil -> Selesai | Dibatalkan
-  - Transisi status tervalidasi
-- Notifikasi:
-  - Tersimpan di DB
-  - Buyer & Seller menerima notifikasi terkait order
-
-## Prasyarat
-
-- Node.js 18+
-- MySQL Server 8+ (atau kompatibel)
-- Alat CLI untuk MySQL (opsional)
-
-## Instalasi
-
-```bash
-git clone https://github.com/raflyrzp/danus-in.git
-cd backend
-npm install
-cp .env.example .env
-```
-
-Edit `.env` sesuai lingkungan Anda.
-
-## Environment Variables
-
-```env
-PORT=4000
-DB_HOST=localhost
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=danus_in
-JWT_SECRET=supersecretjwt
-JWT_EXPIRES=7d
-```
-
-Catatan:
-
-- JWT_SECRET wajib aman di production.
-- JWT_EXPIRES menerima format seperti "7d", "12h", dll.
-
-## Setup Database
-
-1. Buat database dan tabel:
-
-```bash
-mysql -u root -p
-CREATE DATABASE danus_in;
-USE danus_in;
-SOURCE db/schema.sql;
-```
-
-2. Opsional: seed data awal sesuai kebutuhan Anda.
-
-Skema tabel utama:
-
-- users: nim unik wajib, profil kampus, role buyer/seller
-- products: milik seller
-- orders: relasi buyer & produk, status
-- notifications: notifikasi per user
-
-## Menjalankan Aplikasi
-
-Development (auto-reload):
-
-```bash
-npm run dev
-```
-
-Build + Start (production):
-
-```bash
-npm run build
-npm start
-```
-
-Default: http://localhost:4000
-
-## Struktur Direktori
+## 📁 Struktur Project
 
 ```
 src/
-├── index.ts
-├── config/
-│   └── db.ts
-├── constants/
-│   └── orderStatus.ts
-├── controllers/
-│   ├── auth.controller.ts
-│   ├── product.controller.ts
-│   ├── order.controller.ts
-│   └── notification.controller.ts
-├── middleware/
-│   ├── auth.ts
-│   ├── role.ts
-│   └── validate.ts
-├── routes/
-│   ├── auth.routes.ts
-│   ├── product.routes.ts
-│   ├── order.routes.ts
-│   └── notification.routes.ts
-├── schemas/
-│   ├── auth.schema.ts
-│   ├── order.schema.ts
-│   ├── product.schema.ts
-│   └── query.schema.ts
-├── types/
-│   ├── entities.ts
-│   └── express.d.ts
-└── utils/
-    ├── errors.ts
-    └── password.ts
+├── core/                    # Core functionality
+│   ├── config/             # Configuration files
+│   │   ├── app.config.ts   # Express app setup
+│   │   ├── database.config.ts
+│   │   ├── env.config.ts
+│   │   └── logger.config.ts
+│   ├── middleware/         # Global middleware
+│   │   ├── auth.middleware.ts
+│   │   ├── error.middleware.ts
+│   │   └── validation.middleware.ts
+│   └── database/          # Database setup
+│       └── migrations/
+│           └── init.sql
+├── modules/               # Feature modules
+│   ├── auth/             # Authentication
+│   ├── users/            # User management
+│   ├── products/         # Product management
+│   ├── orders/           # Order management
+│   ├── notifications/    # Notifications
+│   ├── upload/          # File upload
+│   └── dashboard/       # Dashboard stats
+├── shared/              # Shared resources
+│   ├── constants/       # Constants & enums
+│   ├── types/          # TypeScript types
+│   └── utils/          # Utility functions
+└── server.ts           # Entry point
 ```
 
-## Konvensi & Keamanan
+## 🔧 Installation
 
-- Semua endpoint JSON: `Content-Type: application/json`
-- Bearer Token di header:
-  ```
-  Authorization: Bearer <JWT>
-  ```
-- Helmet aktif untuk header keamanan
-- CORS: default allow-all (atur sesuai domain production)
-- Penanganan error:
-  - Error validasi Zod -> HTTP 400 dengan detail
-  - Error logika -> AppError dengan status sesuai
+### Prerequisites
 
-## Validasi (Zod v4)
+- Node.js >= 22.0.0
+- MySQL >= 8.0
+- npm atau pnpm
 
-- Register:
-  - buyer: whatsapp opsional
-  - seller: whatsapp wajib
-  - nim: 6-20 digit
-  - password: min 6 char
-- Product:
-  - price: integer positif
-  - tanggal: "YYYY-MM-DD"
-  - po_open_date <= po_close_date
-  - delivery_date >= po_close_date
-- Order:
-  - quantity min 1
-- List Products Query:
-  - min_price/max_price dicoerce -> number
-  - min_price <= max_price
-  - open_only 'true'|'false'
+### Steps
 
-## Dokumentasi API
+1. **Clone repository**
 
-Base URL: `http://localhost:4000`
+   ```bash
+   git clone https://github.com/raflyrzp/danusin-backend.git
+   cd danusin-backend
+   ```
 
-### Auth
+2. **Install dependencies**
 
-- POST /auth/register
+   ```bash
+   npm install
+   ```
 
-  - Body:
-    ```
-    {
-      "nim": "120310001",
-      "name": "Nama",
-      "major": "Informatika",
-      "faculty": "FTI",
-      "batch_year": 2023,
-      "whatsapp": "08123456789",   // wajib jika role=seller
-      "email": "user@example.com",
-      "password": "rahasia123",
-      "role": "buyer" | "seller"
-    }
-    ```
-  - Response 201:
-    ```
-    { "message": "Registrasi sukses", "user": { ...profil } }
-    ```
+3. **Setup environment**
 
-- POST /auth/login
+   ```bash
+   cp .env.example .env
+   ```
 
-  - Body:
-    ```
-    { "credential": "120310001" | "user@example.com", "password": "rahasia123" }
-    ```
-  - Response 200:
-    ```
-    { "token": "JWT", "user": { ...profil } }
-    ```
+   Edit `.env` dan sesuaikan konfigurasi database dan JWT secret.
 
-- GET /auth/me
+4. **Create database**
 
-  - Auth: Bearer Token
-  - Response 200: profil user
+   ```bash
+   mysql -u root -p < src/core/database/migrations/init.sql
+   ```
 
-- PUT /auth/me
+5. **Run development server**
+   ```bash
+   npm run dev
+   ```
 
-  - Auth: Bearer Token
-  - Body (sebagian):
-    ```
-    {
-      "name": "...",
-      "major": "...",
-      "faculty": "...",
-      "batch_year": 2024,
-      "whatsapp": "08....",
-      "email": "new@example.com",
-      "password": "newpass"
-    }
-    ```
-  - Response 200: `{ "message": "Profil diperbarui" }`
+## 🌐 API Endpoints
 
-- POST /auth/upgrade-seller
-  - Auth: Bearer Token (role buyer)
-  - Body:
-    ```
-    { "whatsapp": "08123456789" } // optional jika profil sudah punya whatsapp
-    ```
-  - Response 200:
-    ```
-    { "message": "Upgrade berhasil", "user": { ...profil_terbaru } }
-    ```
+### Base URL
+
+```
+http://localhost:3000/api/v1
+```
+
+### Authentication
+
+| Method | Endpoint               | Auth     | Description        |
+| ------ | ---------------------- | -------- | ------------------ |
+| POST   | `/auth/register`       | ❌       | Register user baru |
+| POST   | `/auth/login`          | ❌       | Login user         |
+| GET    | `/auth/me`             | ✅       | Get profil sendiri |
+| PUT    | `/auth/me`             | ✅       | Update profil      |
+| POST   | `/auth/upgrade-seller` | ✅ Buyer | Upgrade ke seller  |
 
 ### Products
 
-- GET /products
-
-  - Query (opsional): `q`, `min_price`, `max_price`, `open_only` ('true'|'false')
-  - Contoh: `/products?q=nasi&min_price=10000&max_price=20000&open_only=true`
-  - Response 200: daftar produk
-
-- GET /products/me/mine
-
-  - Auth: Bearer Token (seller)
-  - Response 200: produk milik seller
-
-- GET /products/:id
-
-  - Response 200: detail produk
-
-- POST /products
-
-  - Auth: Bearer Token (seller)
-  - Body:
-    ```
-    {
-      "name": "Nasi Bakar",
-      "description": "Pedas level 3",
-      "price": 15000,
-      "image_url": "https://...",
-      "po_open_date": "2025-11-01",
-      "po_close_date": "2025-11-10",
-      "delivery_date": "2025-11-12"
-    }
-    ```
-  - Response 201: `{ "message": "Produk dibuat", "product": { "id": ... } }`
-
-- PUT /products/:id
-
-  - Auth: Bearer Token (seller, pemilik produk)
-  - Body: field yang diubah (minimal 1)
-  - Response 200: `{ "message": "Berhasil update" }`
-
-- DELETE /products/:id
-  - Auth: Bearer Token (seller, pemilik produk)
-  - Response 200: `{ "message": "Berhasil hapus" }`
+| Method | Endpoint            | Auth      | Description       |
+| ------ | ------------------- | --------- | ----------------- |
+| GET    | `/products`         | ❌        | List semua produk |
+| GET    | `/products/:id`     | ❌        | Detail produk     |
+| GET    | `/products/me/mine` | ✅ Seller | Produk milik saya |
+| POST   | `/products`         | ✅ Seller | Buat produk baru  |
+| PUT    | `/products/:id`     | ✅ Seller | Update produk     |
+| DELETE | `/products/:id`     | ✅ Seller | Hapus produk      |
 
 ### Orders
 
-- POST /orders
+| Method | Endpoint                  | Auth      | Description     |
+| ------ | ------------------------- | --------- | --------------- |
+| POST   | `/orders`                 | ✅ Buyer  | Buat pesanan    |
+| GET    | `/orders/me`              | ✅ Buyer  | Riwayat pesanan |
+| GET    | `/orders/seller/incoming` | ✅ Seller | Pesanan masuk   |
+| GET    | `/orders/:id`             | ✅        | Detail pesanan  |
+| PATCH  | `/orders/:id/status`      | ✅ Seller | Update status   |
 
-  - Auth: Bearer Token (buyer)
-  - Body:
-    ```
-    { "product_id": 1, "quantity": 2 }
-    ```
-  - Aturan: hanya dalam periode PO
-  - Response 201:
-    ```
-    { "message": "Order dibuat", "order": { "id": 7, "total_price": 30000 } }
-    ```
+### Users
 
-- GET /orders/me
-
-  - Auth: Bearer Token (buyer)
-  - Response 200: daftar pesanan saya (buyer)
-
-- GET /orders/seller/incoming
-
-  - Auth: Bearer Token (seller)
-  - Response 200: pesanan untuk produk milik seller
-
-- PATCH /orders/:id/status
-  - Auth: Bearer Token (seller pemilik produk)
-  - Body:
-    ```
-    { "status": "Diproses" | "Siap Diambil" | "Selesai" | "Dibatalkan" }
-    ```
-  - Aturan transisi:
-    - Menunggu Pembayaran -> Diproses | Dibatalkan
-    - Diproses -> Siap Diambil | Dibatalkan
-    - Siap Diambil -> Selesai
-    - Selesai/Dibatalkan -> final
-  - Response 200: `{ "message": "Status diperbarui", "newStatus": "..." }`
+| Method | Endpoint                    | Auth | Description          |
+| ------ | --------------------------- | ---- | -------------------- |
+| GET    | `/users/:id/public-profile` | ❌   | Profil publik seller |
 
 ### Notifications
 
-- GET /notifications
+| Method | Endpoint                  | Auth | Description         |
+| ------ | ------------------------- | ---- | ------------------- |
+| GET    | `/notifications`          | ✅   | List notifikasi     |
+| PATCH  | `/notifications/:id/read` | ✅   | Tandai dibaca       |
+| POST   | `/notifications/read-all` | ✅   | Tandai semua dibaca |
 
-  - Auth: Bearer Token
-  - Response 200: daftar notifikasi user
+### Upload
 
-- PATCH /notifications/:id/read
-  - Auth: Bearer Token (pemilik notifikasi)
-  - Response 200: `{ "message": "Notifikasi ditandai dibaca" }`
+| Method | Endpoint        | Auth      | Description          |
+| ------ | --------------- | --------- | -------------------- |
+| POST   | `/upload/image` | ✅ Seller | Upload gambar produk |
 
-## Contoh Error
+### Dashboard
 
-- Error Validasi (Zod):
+| Method | Endpoint                    | Auth      | Description      |
+| ------ | --------------------------- | --------- | ---------------- |
+| GET    | `/dashboard/seller/summary` | ✅ Seller | Ringkasan seller |
+| GET    | `/dashboard/buyer/summary`  | ✅ Buyer  | Ringkasan buyer  |
 
-  ```
-  HTTP 400
-  {
-    "errors": [
-      { "path": "password", "message": "Password minimal 6 karakter" },
-      { "path": "whatsapp", "message": "Whatsapp wajib untuk seller" }
-    ]
+## 📝 Request & Response Examples
+
+### Register
+
+```json
+POST /api/v1/auth/register
+{
+  "nim": "2108107010001",
+  "name": "John Doe",
+  "major": "Informatika",
+  "faculty": "Teknik",
+  "batch_year": 2021,
+  "whatsapp": "081234567890",
+  "email": "john@example.com",
+  "password": "password123"
+}
+
+Response 201:
+{
+  "message": "Registrasi berhasil",
+  "data": {
+    "user": {
+      "id": 1,
+      "nim": "2108107010001",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "role": "buyer",
+      ...
+    }
   }
-  ```
+}
+```
 
-- Error Akses:
+### Login
 
-  ```
-  HTTP 403
-  { "message": "Forbidden: Wrong role" }
-  ```
+```json
+POST /api/v1/auth/login
+{
+  "credential": "john@example.com",
+  "password": "password123"
+}
 
-- Error Not Found:
-  ```
-  HTTP 404
-  { "message": "Produk tidak ditemukan" }
-  ```
+Response 200:
+{
+  "message": "Login berhasil",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": { ... }
+  }
+}
+```
 
-## Catatan Implementasi
+### Create Product
 
-- TypeScript ESM (NodeNext). Import antarmodul dalam `src` memakai akhiran `.js` supaya cocok dengan output kompilasi (`dist/*.js`).
-- MySQL: gunakan `pool.execute<T>` (bukan `query`) agar type inference tepat (RowDataPacket/ResultSetHeader).
-- Express 5: cukup `throw` di async route; error akan diteruskan ke handler pusat.
-- Zod v4: gunakan `z.coerce.number()` untuk query numerik agar parsing lebih nyaman.
+```json
+POST /api/v1/products
+Authorization: Bearer <token>
+
+{
+  "name": "Baju Kelas Informatika 2021",
+  "description": "Baju kelas batch 2021...",
+  "price": 75000,
+  "image_url": "https://...",
+  "po_open_date": "2025-11-20",
+  "po_close_date": "2025-11-30",
+  "delivery_date": "2025-12-15"
+}
+
+Response 201:
+{
+  "message": "Produk berhasil dibuat",
+  "data": {
+    "product": { ... }
+  }
+}
+```
+
+## 🔐 Authentication
+
+API menggunakan JWT (JSON Web Token) untuk authentication.
+
+### Header Format
+
+```
+Authorization: Bearer <your_token_here>
+```
+
+### Token Payload
+
+```json
+{
+  "id": 1,
+  "nim": "2108107010001",
+  "name": "John Doe",
+  "email": "john@example.com",
+  "role": "buyer"
+}
+```
+
+## 🛠️ Development
+
+### Available Scripts
+
+```bash
+# Development mode dengan hot reload
+npm run dev
+
+# Build untuk production
+npm run build
+
+# Run production build
+npm start
+
+# Linting
+npm run lint
+npm run lint:fix
+
+# Format code
+npm run format
+```
+
+### Code Quality
+
+Project menggunakan **Biome** untuk linting dan formatting:
+
+```bash
+# Check code quality
+npm run lint
+
+# Auto fix issues
+npm run lint:fix
+
+# Format code
+npm run format
+```
+
+## 🏗️ Build & Deployment
+
+### Build Production
+
+```bash
+npm run build
+```
+
+Output akan ada di folder `dist/`.
+
+### Run Production
+
+```bash
+npm start
+```
+
+### Environment Variables (Production)
+
+Pastikan set environment variables berikut di production:
+
+```env
+NODE_ENV=production
+PORT=3000
+DATABASE_HOST=your-db-host
+DATABASE_USER=your-db-user
+DATABASE_PASSWORD=your-db-password
+DATABASE_NAME=danus_in
+JWT_SECRET=your-very-secure-jwt-secret-min-32-characters
+```
+
+## 📊 Database Schema
+
+### Users
+
+- id, nim, name, major, faculty, batch_year
+- whatsapp, email, password, role
+- created_at, updated_at
+
+### Products
+
+- id, seller_id, name, description, price
+- image_url, po_open_date, po_close_date, delivery_date
+- created_at, updated_at
+
+### Orders
+
+- id, buyer_id, product_id, quantity, total_price
+- status (Menunggu Konfirmasi | Diproses | Selesai | Dibatalkan)
+- created_at, updated_at
+
+### Notifications
+
+- id, user_id, title, message, is_read
+- created_at
+
+## 🔒 Security
+
+- ✅ Helmet.js untuk security headers
+- ✅ CORS protection
+- ✅ Password hashing dengan bcrypt (12 rounds)
+- ✅ JWT authentication
+- ✅ Input validation dengan Zod
+- ✅ SQL injection protection (prepared statements)
+- ✅ Rate limiting (recommended untuk production)
+
+## 📝 Logging
+
+Menggunakan **Pino** untuk structured logging:
+
+- Development: Pretty printed dengan colors
+- Production: JSON format untuk log aggregation
+
+## 🤝 Contributing
+
+1. Fork repository
+2. Create feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to branch (`git push origin feature/AmazingFeature`)
+5. Open Pull Request
+
+---
+
+## Happy Coding!✨🚀

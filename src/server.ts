@@ -1,32 +1,70 @@
-import "dotenv/config";
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import morgan from "morgan";
+import { createApp } from "./core/config/app.config.js";
+import { config } from "./core/config/env.config.js";
+import { testConnection, closePool } from "./core/config/database.config.js";
+import { logger } from "./core/config/logger.config.js";
 
-import router from "./routes";
+const startServer = async () => {
+  try {
+    // Test database connection
+    const isDbConnected = await testConnection();
+    if (!isDbConnected) {
+      logger.error("Failed to connect to database. Exiting...");
+      process.exit(1);
+    }
 
-const app = express();
+    // Create Express app
+    const app = createApp();
 
-app.use(helmet());
-app.use(cors());
-app.use(express.json({ limit: "2mb" }));
-app.use(morgan("dev"));
+    // Start server
+    const server = app.listen(config.server.port, () => {
+      logger.info(`
+🚀 Server is running!
+📡 Environment: ${config.server.nodeEnv}
+🌐 URL: http://localhost:${config.server.port}
+📚 API: http://localhost:${config.server.port}/api/${config.server.apiVersion}
+🏥 Health: http://localhost:${config.server.port}/health
+      `);
+    });
 
-app.get("/health", (_req, res) => res.json({ status: "ok" }));
+    // Graceful shutdown
+    const gracefulShutdown = async (signal: string) => {
+      logger.info(`${signal} received. Starting graceful shutdown...`);
 
-app.use(router);
+      server.close(async () => {
+        logger.info("HTTP server closed");
 
-// Not found
-app.use((req, res) => {
-  res.status(404).json({ error: "Not Found" });
-});
+        await closePool();
+        logger.info("Database pool closed");
 
-// Error handler
-app.use((err, _req, res, _next) => {
-  console.error(err);
-  if (err.status) return res.status(err.status).json({ error: err.message });
-  res.status(500).json({ error: "Internal Server Error" });
-});
+        logger.info("Graceful shutdown completed");
+        process.exit(0);
+      });
 
-export default app;
+      // Force shutdown after 10 seconds
+      setTimeout(() => {
+        logger.error("Forcing shutdown after timeout");
+        process.exit(1);
+      }, 10000);
+    };
+
+    // Handle signals
+    process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+    process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
+    // Handle uncaught errors
+    process.on("uncaughtException", (error) => {
+      logger.error({ error }, "Uncaught Exception");
+      process.exit(1);
+    });
+
+    process.on("unhandledRejection", (reason, promise) => {
+      logger.error({ reason, promise }, "Unhandled Rejection");
+      process.exit(1);
+    });
+  } catch (error) {
+    logger.error({ error }, "Failed to start server");
+    process.exit(1);
+  }
+};
+
+startServer();

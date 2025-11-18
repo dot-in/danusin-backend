@@ -1,0 +1,1365 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-a1b2-c3d4-e5f6a1b2c3d4",
+    "name": "Danus-in API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nim\": \"120310001\",\n  \"name\": \"Nama Lengkap\",\n  \"major\": \"Informatika\",\n  \"faculty\": \"FTI\",\n  \"batch_year\": 2023,\n  \"whatsapp\": \"08123456789\",\n  \"email\": \"user@example.com\",\n  \"password\": \"rahasia123\",\n  \"role\": \"seller\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Register",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "...",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "register"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Registrasi sukses\",\n    \"user\": {\n        \"id\": 1,\n        \"nim\": \"120310001\",\n        \"name\": \"Nama Lengkap\",\n        \"email\": \"user@example.com\",\n        \"role\": \"seller\",\n        \"whatsapp\": \"08123456789\",\n        \"major\": \"Informatika\",\n        \"faculty\": \"FTI\",\n        \"batch_year\": 2023\n    }\n}"
+            },
+            {
+              "name": "Error Validasi",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "...",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/register",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "register"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"errors\": [\n        {\n            \"path\": \"password\",\n            \"message\": \"Password minimal 6 karakter\"\n        },\n        {\n            \"path\": \"whatsapp\",\n            \"message\": \"Whatsapp wajib untuk seller\"\n        }\n    ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"credential\": \"user@example.com\",\n  \"password\": \"rahasia123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Login",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"credential\": \"user@example.com\",\n  \"password\": \"rahasia123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "login"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c\",\n    \"user\": {\n        \"id\": 1,\n        \"nim\": \"120310001\",\n        \"name\": \"Nama Lengkap\",\n        \"email\": \"user@example.com\",\n        \"role\": \"seller\"\n    }\n}"
+            },
+            {
+              "name": "Error Kredensial Salah",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"credential\": \"user@example.com\",\n  \"password\": \"salah\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "login"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Kredensial tidak valid\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get Profil",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "me"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": 1,\n    \"nim\": \"120310001\",\n    \"name\": \"Nama Lengkap\",\n    \"email\": \"user@example.com\",\n    \"role\": \"seller\",\n    \"whatsapp\": \"08123456789\",\n    \"major\": \"Informatika\",\n    \"faculty\": \"FTI\",\n    \"batch_year\": 2023\n}"
+            },
+            {
+              "name": "Error Unauthorized",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "me"]
+                }
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Token tidak valid atau tidak ada\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nama Baru\",\n  \"batch_year\": 2024,\n  \"password\": \"passwordbaru123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "me"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Update Profil",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Nama Baru\",\n  \"batch_year\": 2024,\n  \"password\": \"passwordbaru123\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "me"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Profil diperbarui\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Upgrade to Seller",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"whatsapp\": \"08987654321\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/upgrade-seller",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "upgrade-seller"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Upgrade",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"whatsapp\": \"08987654321\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/upgrade-seller",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "upgrade-seller"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Upgrade berhasil\",\n    \"user\": {\n        \"id\": 2,\n        \"name\": \"Buyer User\",\n        \"email\": \"buyer@example.com\",\n        \"role\": \"seller\",\n        \"whatsapp\": \"08987654321\"\n    }\n}"
+            },
+            {
+              "name": "Error Sudah Seller",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"whatsapp\": \"08987654321\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/auth/upgrade-seller",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["auth", "upgrade-seller"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Anda sudah menjadi seller\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "Get All Products (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products?q=nasi&min_price=10000&max_price=20000&open_only=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "nasi",
+                  "description": "Pencarian nama produk"
+                },
+                {
+                  "key": "min_price",
+                  "value": "10000",
+                  "description": "Harga minimal"
+                },
+                {
+                  "key": "max_price",
+                  "value": "20000",
+                  "description": "Harga maksimal"
+                },
+                {
+                  "key": "open_only",
+                  "value": "true",
+                  "description": "Hanya tampilkan PO yang masih buka"
+                },
+                {
+                  "key": "seller_id",
+                  "value": "5",
+                  "description": "Filter berdasarkan penjual",
+                  "disabled": true
+                }
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get Products",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/products?q=nasi&min_price=10000",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["products"],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "nasi"
+                    },
+                    {
+                      "key": "min_price",
+                      "value": "10000"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Nasi Bakar\",\n        \"price\": 15000,\n        \"image_url\": \"https://...\",\n        \"po_close_date\": \"2025-11-10T23:59:59Z\",\n        \"seller\": {\n            \"id\": 5,\n            \"name\": \"UKM Sastra\"\n        }\n    },\n    {\n        \"id\": 2,\n        \"name\": \"Nasi Uduk\",\n        \"price\": 12000,\n        \"image_url\": \"https://...\",\n        \"po_close_date\": \"2025-11-12T23:59:59Z\",\n        \"seller\": {\n            \"id\": 6,\n            \"name\": \"HMTI\"\n        }\n    }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Product by ID (Public)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "1"]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get Detail Produk",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/products/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["products", "1"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": 1,\n    \"name\": \"Nasi Bakar\",\n    \"description\": \"Pedas level 3, isi ayam suwir.\",\n    \"price\": 15000,\n    \"image_url\": \"https://...\",\n    \"po_open_date\": \"2025-11-01T00:00:00Z\",\n    \"po_close_date\": \"2025-11-10T23:59:59Z\",\n    \"delivery_date\": \"2025-11-12T00:00:00Z\",\n    \"seller\": {\n        \"id\": 5,\n        \"name\": \"UKM Sastra\",\n        \"whatsapp\": \"08123456789\",\n        \"faculty\": \"FIB\"\n    }\n}"
+            },
+            {
+              "name": "Error Not Found",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/products/999",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["products", "999"]
+                }
+              },
+              "status": "Not Found",
+              "code": 404,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Produk tidak ditemukan\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Products (Seller)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/me/mine",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "me", "mine"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get My Products",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/products/me/mine",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["products", "me", "mine"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n    {\n        \"id\": 1,\n        \"name\": \"Nasi Bakar\",\n        \"price\": 15000,\n        \"image_url\": \"https://...\"\n    }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Create Product (Seller)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Nasi Bakar Ayam\",\n  \"description\": \"Pedas level 3, isi ayam suwir.\",\n  \"price\": 15000,\n  \"image_url\": \"https://storage.cloud.com/path/to/image.jpg\",\n  \"po_open_date\": \"2025-11-01\",\n  \"po_close_date\": \"2025-11-10\",\n  \"delivery_date\": \"2025-11-12\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products",
+              "host": ["{{baseUrl}}"],
+              "path": ["products"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Create Product",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "...",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/products",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["products"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Produk dibuat\",\n    \"product\": {\n        \"id\": 3,\n        \"name\": \"Nasi Bakar Ayam\",\n        \"price\": 15000,\n        \"user_id\": 1\n    }\n}"
+            },
+            {
+              "name": "Error Forbidden (Bukan Seller)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "...",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/products",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["products"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Forbidden: Wrong role\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Product (Seller)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 16000,\n  \"description\": \"Deskripsi diperbarui.\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/products/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "1"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Update",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"price\": 16000,\n  \"description\": \"Deskripsi diperbarui.\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/products/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["products", "1"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Berhasil update\"\n}"
+            },
+            {
+              "name": "Error Forbidden (Bukan Pemilik)",
+              "originalRequest": {
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"price\": 16000\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/products/2",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["products", "2"]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Forbidden: Anda bukan pemilik produk ini\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Delete Product (Seller)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/products/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["products", "1"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Hapus",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/products/1",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["products", "1"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Berhasil hapus\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Orders",
+      "item": [
+        {
+          "name": "Create Order (Buyer)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"product_id\": 1,\n  \"quantity\": 2\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Create Order",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"product_id\": 1,\n  \"quantity\": 2\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/orders",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["orders"]
+                }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Order dibuat\",\n    \"order\": {\n        \"id\": 7,\n        \"user_id\": 2,\n        \"product_id\": 1,\n        \"quantity\": 2,\n        \"total_price\": 30000,\n        \"status\": \"Menunggu Pembayaran\"\n    }\n}"
+            },
+            {
+              "name": "Error PO Sudah Tutup",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"product_id\": 1,\n  \"quantity\": 2\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/orders",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["orders"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Pre-order untuk produk ini sudah ditutup\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Get My Orders (Buyer)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/me",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "me"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get My Orders",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/orders/me",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["orders", "me"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n    {\n        \"id\": 7,\n        \"status\": \"Menunggu Pembayaran\",\n        \"total_price\": 30000,\n        \"quantity\": 2,\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Nasi Bakar\",\n            \"image_url\": \"https://...\"\n        }\n    }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Incoming Orders (Seller)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/seller/incoming",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "seller", "incoming"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get Incoming Orders",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/orders/seller/incoming",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["orders", "seller", "incoming"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n    {\n        \"id\": 7,\n        \"status\": \"Menunggu Pembayaran\",\n        \"total_price\": 30000,\n        \"quantity\": 2,\n        \"product\": {\n            \"id\": 1,\n            \"name\": \"Nasi Bakar\"\n        },\n        \"buyer\": {\n            \"id\": 2,\n            \"name\": \"Buyer User\",\n            \"whatsapp\": \"089...\"\n        }\n    }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Get Order by ID (Detail)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/orders/7",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "7"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get Order Detail",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/orders/7",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["orders", "7"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": 7,\n    \"status\": \"Menunggu Pembayaran\",\n    \"total_price\": 30000,\n    \"quantity\": 2,\n    \"created_at\": \"2025-11-05T10:30:00Z\",\n    \"product\": {\n        \"id\": 1,\n        \"name\": \"Nasi Bakar\",\n        \"image_url\": \"https://...\"\n    },\n    \"buyer\": {\n        \"id\": 2,\n        \"name\": \"Buyer User\",\n        \"whatsapp\": \"089...\"\n    },\n    \"seller\": {\n        \"id\": 1,\n        \"name\": \"Nama Lengkap\",\n        \"whatsapp\": \"0812...\"\n    }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Update Order Status (Seller)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"Diproses\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/orders/7/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["orders", "7", "status"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Update Status",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Diproses\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/orders/7/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["orders", "7", "status"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Status diperbarui\",\n    \"newStatus\": \"Diproses\"\n}"
+            },
+            {
+              "name": "Error Transisi Status Ilegal",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"Selesai\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/orders/7/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["orders", "7", "status"]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Transisi status tidak valid (dari Menunggu Pembayaran ke Selesai)\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users / Public",
+      "item": [
+        {
+          "name": "Get Public Profile (Seller Info)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/1/public-profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "1", "public-profile"]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get Public Profile",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/users/1/public-profile",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["users", "1", "public-profile"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"id\": 1,\n    \"name\": \"Nama Lengkap\",\n    \"faculty\": \"FTI\",\n    \"batch_year\": 2023,\n    \"active_products_count\": 3\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Seller Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dashboard/seller/summary",
+              "host": ["{{baseUrl}}"],
+              "path": ["dashboard", "seller", "summary"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get Summary",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/dashboard/seller/summary",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["dashboard", "seller", "summary"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"total_revenue\": 550000,\n    \"pending_orders_count\": 8,\n    \"active_products_count\": 3,\n    \"total_orders_completed\": 25\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get My Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Get Notif",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["notifications"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "[\n    {\n        \"id\": 1,\n        \"message\": \"Pesanan #7 telah diproses oleh penjual.\",\n        \"read\": false,\n        \"created_at\": \"2025-11-05T11:00:00Z\",\n        \"order_id\": 7\n    },\n    {\n        \"id\": 2,\n        \"message\": \"Anda memiliki pesanan baru untuk Nasi Bakar.\",\n        \"read\": true,\n        \"created_at\": \"2025-11-05T10:30:00Z\",\n        \"order_id\": 7\n    }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/1/read",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "1", "read"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Mark Read",
+              "originalRequest": {
+                "method": "PATCH",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/1/read",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["notifications", "1", "read"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Notifikasi ditandai dibaca\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Mark All as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/read-all",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "read-all"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Mark All",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/read-all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["notifications", "read-all"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"message\": \"Semua notifikasi ditandai dibaca\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Uploads",
+      "item": [
+        {
+          "name": "Upload Product Image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "image",
+                  "type": "file",
+                  "src": "/C:/Users/YourUser/Pictures/nasi-bakar.jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/upload/image",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "image"]
+            }
+          },
+          "response": [
+            {
+              "name": "Sukses Upload",
+              "originalRequest": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "image",
+                      "type": "file",
+                      "src": "/C:/Users/YourUser/Pictures/nasi-bakar.jpg"
+                    }
+                  ]
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/upload/image",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["upload", "image"]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "cookie": [],
+              "body": "{\n    \"image_url\": \"https://storage.cloud.com/path/to/image.jpg\"\n}"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "token",
+      "value": "YOUR_JWT_TOKEN_AFTER_LOGIN"
+    }
+  ]
+}

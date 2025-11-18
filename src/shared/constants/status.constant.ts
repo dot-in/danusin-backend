@@ -1,0 +1,18 @@
+export const ORDER_STATUS = {
+  PENDING: "Menunggu Konfirmasi",
+  PROCESSING: "Diproses",
+  COMPLETED: "Selesai",
+  CANCELLED: "Dibatalkan",
+} as const;
+
+export const ORDER_STATUS_TRANSITIONS: Record<string, string[]> = {
+  [ORDER_STATUS.PENDING]: [ORDER_STATUS.PROCESSING, ORDER_STATUS.CANCELLED],
+  [ORDER_STATUS.PROCESSING]: [ORDER_STATUS.COMPLETED, ORDER_STATUS.CANCELLED],
+  [ORDER_STATUS.COMPLETED]: [],
+  [ORDER_STATUS.CANCELLED]: [],
+};
+
+export const USER_ROLE = {
+  BUYER: "buyer",
+  SELLER: "seller",
+} as const;
