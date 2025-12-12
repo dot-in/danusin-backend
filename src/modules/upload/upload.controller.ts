@@ -1,9 +1,20 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { UploadService } from "./upload.service.js";
 import { successResponse } from "../../shared/utils/response.util.js";
 import { SUCCESS_MESSAGES } from "../../shared/constants/message.constant.js";
 import { AppError } from "../../core/middlewares/error.middleware.js";
 import { ERROR_MESSAGES } from "../../shared/constants/message.constant.js";
+
+interface FileUploadRequest extends Request {
+  files?: {
+    image?: {
+      name: string;
+      data: Buffer;
+      size: number;
+      mimetype: string;
+    };
+  };
+}
 
 export class UploadController {
   private uploadService: UploadService;
@@ -18,7 +29,7 @@ export class UploadController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const file = (req as any).files?.image;
+      const file = (req as FileUploadRequest).files?.image;
 
       if (!file) {
         throw new AppError(ERROR_MESSAGES.UPLOAD.NO_FILE, 400);

@@ -9,8 +9,19 @@ export interface User {
   email: string;
   password: string;
   role: "buyer" | "seller";
-  created_at: Date;
-  updated_at: Date;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface Image {
+  id: number;
+  url: string;
+  alt_text: string | null;
+  entity_type: "product" | "user";
+  entity_id: number;
+  is_primary: boolean;
+  sort_order: number;
+  created_at: string;
 }
 
 export interface Product {
@@ -19,12 +30,18 @@ export interface Product {
   name: string;
   description: string;
   price: number;
-  image_url: string | null;
-  po_open_date: Date;
-  po_close_date: Date;
-  delivery_date: Date | null;
-  created_at: Date;
-  updated_at: Date;
+  stock: number;
+  po_open_date: string;
+  po_close_date: string;
+  delivery_date: string | null;
+  created_at: string;
+  updated_at: string;
+  images?: Image[];
+  primary_image?: string | null;
+  available_days?: string[];
+  seller_name?: string;
+  seller_faculty?: string;
+  seller_whatsapp?: string;
 }
 
 export interface Order {
@@ -34,8 +51,8 @@ export interface Order {
   quantity: number;
   total_price: number;
   status: "Menunggu Konfirmasi" | "Diproses" | "Selesai" | "Dibatalkan";
-  created_at: Date;
-  updated_at: Date;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Notification {
@@ -44,7 +61,7 @@ export interface Notification {
   title: string;
   message: string;
   is_read: boolean;
-  created_at: Date;
+  created_at: string;
 }
 
 export interface AuthUser {

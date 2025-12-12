@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { AuthService } from "./auth.service.js";
-import { successResponse } from "../../shared/utils/response.util.js";
+import { successResponse, errorResponse } from "../../shared/utils/response.util.js";
 import { SUCCESS_MESSAGES } from "../../shared/constants/message.constant.js";
 
 export class AuthController {
@@ -45,7 +45,11 @@ export class AuthController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const user = await this.authService.getProfile(req.user!.id);
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
+      const user = await this.authService.getProfile(req.user.id);
       successResponse(res, 200, "Profil berhasil diambil", user);
     } catch (error) {
       next(error);
@@ -58,7 +62,11 @@ export class AuthController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const user = await this.authService.updateProfile(req.user!.id, req.body);
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
+      const user = await this.authService.updateProfile(req.user.id, req.body);
       successResponse(res, 200, SUCCESS_MESSAGES.AUTH.PROFILE_UPDATED, {
         user,
       });
@@ -73,8 +81,12 @@ export class AuthController {
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
       const user = await this.authService.upgradeSeller(
-        req.user!.id,
+        req.user.id,
         req.body.whatsapp
       );
       successResponse(res, 200, SUCCESS_MESSAGES.AUTH.UPGRADE_SUCCESS, {

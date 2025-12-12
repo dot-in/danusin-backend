@@ -1,4 +1,4 @@
-import express, { Application } from "express";
+import express, { type Application } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import morgan from "morgan";
@@ -7,7 +7,6 @@ import {
   errorHandler,
   notFoundHandler,
 } from "../middlewares/error.middleware.js";
-// import { logger } from "./logger.config.js";
 
 // Import routes
 import authRoutes from "../../modules/auth/auth.routes.js";
@@ -17,6 +16,7 @@ import ordersRoutes from "../../modules/orders/order.routes.js";
 import notificationsRoutes from "../../modules/notifications/notification.routes.js";
 import uploadRoutes from "../../modules/upload/upload.routes.js";
 import dashboardRoutes from "../../modules/dashboard/dashboard.routes.js";
+import imageRoutes from "../../modules/images/image.routes.js"
 
 export const createApp = (): Application => {
   const app = express();
@@ -32,18 +32,18 @@ export const createApp = (): Application => {
   // CORS
   app.use(
     cors({
-      origin: config.server.isDevelopment ? "*" : [],
+      origin: config.server.isDevelopment ?  "*" : [],
       credentials: true,
     })
   );
 
   // Body parser
-  app.use(express.json({ limit: "10mb" }));
+  app. use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
   // Logging
   if (config.server.isDevelopment) {
-    app.use(morgan("dev"));
+    app. use(morgan("dev"));
   }
 
   // Health check
@@ -64,6 +64,7 @@ export const createApp = (): Application => {
   app.use(`${apiPrefix}/notifications`, notificationsRoutes);
   app.use(`${apiPrefix}/upload`, uploadRoutes);
   app.use(`${apiPrefix}/dashboard`, dashboardRoutes);
+  app.use(`${apiPrefix}/images`, imageRoutes); // Tambahkan ini
 
   // Error handlers
   app.use(notFoundHandler);

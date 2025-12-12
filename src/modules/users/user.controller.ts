@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { UserService } from "./user.service.js";
 import { successResponse } from "../../shared/utils/response.util.js";
 
@@ -15,7 +15,7 @@ export class UsersController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const userId = parseInt(req.params.id);
+      const userId = Number.parseInt(req.params.id);
       const profile = await this.usersService.getPublicProfile(userId);
       successResponse(res, 200, "Profil publik berhasil diambil", profile);
     } catch (error) {

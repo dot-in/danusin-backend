@@ -1,7 +1,8 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { ProductService } from "./product.service.js";
 import {
   successResponse,
+  errorResponse,
   paginatedResponse,
 } from "../../shared/utils/response.util.js";
 import { SUCCESS_MESSAGES } from "../../shared/constants/message.constant.js";
@@ -22,17 +23,17 @@ export class ProductsController {
       const query = {
         q: req.query.q as string,
         min_price: req.query.min_price
-          ? parseInt(req.query.min_price as string)
+          ? Number.parseInt(req.query.min_price as string)
           : undefined,
         max_price: req.query.max_price
-          ? parseInt(req.query.max_price as string)
+          ? Number.parseInt(req.query.max_price as string)
           : undefined,
         open_only: req.query.open_only === "true",
         seller_id: req.query.seller_id
-          ? parseInt(req.query.seller_id as string)
+          ? Number.parseInt(req.query.seller_id as string)
           : undefined,
-        page: req.query.page ? parseInt(req.query.page as string) : 1,
-        limit: req.query.limit ? parseInt(req.query.limit as string) : 20,
+        page: req.query.page ? Number.parseInt(req.query.page as string) : 1,
+        limit: req.query.limit ? Number.parseInt(req.query.limit as string) : 20,
       };
 
       const { products, total } = await this.productService.getAll(query);
@@ -56,7 +57,7 @@ export class ProductsController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const productId = parseInt(req.params.id);
+      const productId = Number.parseInt(req.params.id);
       const product = await this.productService.getById(productId);
       successResponse(res, 200, "Detail produk berhasil diambil", product);
     } catch (error) {
@@ -70,7 +71,11 @@ export class ProductsController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const products = await this.productService.getMySeller(req.user!.id);
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
+      const products = await this.productService.getMySeller(req.user.id);
       successResponse(res, 200, "Produk Anda berhasil diambil", products);
     } catch (error) {
       next(error);
@@ -83,7 +88,11 @@ export class ProductsController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const product = await this.productService.create(req.user!.id, req.body);
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
+      const product = await this.productService.create(req.user.id, req.body);
       successResponse(res, 201, SUCCESS_MESSAGES.PRODUCT.CREATED, { product });
     } catch (error) {
       next(error);
@@ -96,10 +105,14 @@ export class ProductsController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const productId = parseInt(req.params.id);
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
+      const productId = Number.parseInt(req.params.id);
       const product = await this.productService.update(
         productId,
-        req.user!.id,
+        req.user.id,
         req.body
       );
       successResponse(res, 200, SUCCESS_MESSAGES.PRODUCT.UPDATED, { product });
@@ -114,8 +127,12 @@ export class ProductsController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const productId = parseInt(req.params.id);
-      await this.productService.delete(productId, req.user!.id);
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
+      const productId = Number.parseInt(req.params.id);
+      await this.productService.delete(productId, req.user.id);
       successResponse(res, 200, SUCCESS_MESSAGES.PRODUCT.DELETED);
     } catch (error) {
       next(error);

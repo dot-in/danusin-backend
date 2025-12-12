@@ -1,4 +1,4 @@
-import { ResultSetHeader } from "mysql2";
+import type { ResultSetHeader } from "mysql2";
 import { pool } from "../../core/config/database.config.js";
 import { AppError } from "../../core/middlewares/error.middleware.js";
 import {
@@ -6,8 +6,8 @@ import {
   comparePassword,
 } from "../../shared/utils/bcrypt.util.js";
 import { generateToken } from "../../shared/utils/jwt.util.js";
-import { UserRow } from "../../shared/types/database.types.js";
-import { UserWithoutPassword } from "../../shared/types/common.types.js";
+import type { UserRow } from "../../shared/types/database.types.js";
+import type { UserWithoutPassword } from "../../shared/types/common.types.js";
 import { ERROR_MESSAGES } from "../../shared/constants/message.constant.js";
 
 interface RegisterDTO {
@@ -62,7 +62,7 @@ export class AuthService {
 
       // Insert user
       const [result] = await connection.query<ResultSetHeader>(
-        `INSERT INTO users (nim, name, major, faculty, batch_year, whatsapp, email, password, role) 
+        `INSERT INTO users (nim, name, major, faculty, batch_year, whatsapp, email, password, role)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           userData.nim,
@@ -79,7 +79,7 @@ export class AuthService {
 
       // Get created user
       const [users] = await connection.query<UserRow[]>(
-        `SELECT id, nim, name, major, faculty, batch_year, whatsapp, email, role, created_at, updated_at 
+        `SELECT id, nim, name, major, faculty, batch_year, whatsapp, email, role, created_at, updated_at
          FROM users WHERE id = ?`,
         [result.insertId]
       );
@@ -130,7 +130,7 @@ export class AuthService {
 
   async getProfile(userId: number): Promise<UserWithoutPassword> {
     const [users] = await pool.query<UserRow[]>(
-      `SELECT id, nim, name, major, faculty, batch_year, whatsapp, email, role, created_at, updated_at 
+      `SELECT id, nim, name, major, faculty, batch_year, whatsapp, email, role, created_at, updated_at
        FROM users WHERE id = ?`,
       [userId]
     );
@@ -147,7 +147,7 @@ export class AuthService {
     updateData: UpdateProfileDTO
   ): Promise<UserWithoutPassword> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number)[] = [];
 
     for (const [key, value] of Object.entries(updateData)) {
       if (value !== undefined) {

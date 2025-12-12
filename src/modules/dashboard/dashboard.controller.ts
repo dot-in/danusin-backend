@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { DashboardService } from "./dashboard.service.js";
-import { successResponse } from "../../shared/utils/response.util.js";
+import { successResponse, errorResponse } from "../../shared/utils/response.util.js";
 
 export class DashboardController {
   private dashboardService: DashboardService;
@@ -15,8 +15,12 @@ export class DashboardController {
     next: NextFunction
   ): Promise<void> => {
     try {
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
       const summary = await this.dashboardService.getSellerSummary(
-        req.user!.id
+        req.user.id
       );
       successResponse(
         res,
@@ -35,7 +39,11 @@ export class DashboardController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const summary = await this.dashboardService.getBuyerSummary(req.user!.id);
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
+      const summary = await this.dashboardService.getBuyerSummary(req.user.id);
       successResponse(
         res,
         200,

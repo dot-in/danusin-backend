@@ -1,10 +1,64 @@
-import { RowDataPacket, ResultSetHeader } from "mysql2";
-import { User, Product, Order, Notification } from "./common.types.js";
+import type { RowDataPacket } from "mysql2";
 
-export interface UserRow extends RowDataPacket, User {}
-export interface ProductRow extends RowDataPacket, Product {}
-export interface OrderRow extends RowDataPacket, Order {}
-export interface NotificationRow extends RowDataPacket, Notification {}
+export interface UserRow extends RowDataPacket {
+  id: number;
+  nim: string;
+  name: string;
+  major: string;
+  faculty: string;
+  batch_year: number;
+  whatsapp: string;
+  email: string;
+  password: string;
+  role: "buyer" | "seller";
+  created_at: string;
+  updated_at: string;
+}
 
-export type QueryResult<T> = T & RowDataPacket;
-export type InsertResult = ResultSetHeader;
+export interface ImageRow extends RowDataPacket {
+  id: number;
+  url: string;
+  alt_text: string | null;
+  entity_type: "product" | "user";
+  entity_id: number;
+  is_primary: boolean;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface ProductRow extends RowDataPacket {
+  id: number;
+  seller_id: number;
+  name: string;
+  description: string;
+  price: number;
+  stock: number;
+  po_open_date: string;
+  po_close_date: string;
+  delivery_date: string | null;
+  created_at: string;
+  updated_at: string;
+  seller_name?: string;
+  seller_faculty?: string;
+  seller_whatsapp?: string;
+}
+
+export interface OrderRow extends RowDataPacket {
+  id: number;
+  buyer_id: number;
+  product_id: number;
+  quantity: number;
+  total_price: number;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NotificationRow extends RowDataPacket {
+  id: number;
+  user_id: number;
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+}

@@ -1,8 +1,12 @@
-import { Request, Response, NextFunction } from "express";
+import type { Request, Response, NextFunction } from "express";
 import { verifyToken } from "../../shared/utils/jwt.util.js";
 import { errorResponse } from "../../shared/utils/response.util.js";
 import { AppError } from "./error.middleware.js";
-import { AuthUser } from "../../shared/types/common.types.js";
+import type { AuthUser } from "../../shared/types/common.types.js";
+
+export interface AuthRequest extends Request {
+  user: AuthUser;
+}
 
 export const authenticate = async (
   req: Request,

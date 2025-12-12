@@ -1,5 +1,5 @@
 import { pool } from "../../core/config/database.config.js";
-import { RowDataPacket } from "mysql2";
+import type { RowDataPacket } from "mysql2";
 
 export class DashboardService {
   async getSellerSummary(sellerId: number) {
@@ -57,7 +57,7 @@ export class DashboardService {
 
     // Recent orders (last 5)
     const [recentOrders] = await pool.query<RowDataPacket[]>(
-      `SELECT 
+      `SELECT
         o.id,
         o.quantity,
         o.total_price,
@@ -76,7 +76,7 @@ export class DashboardService {
 
     // Monthly revenue trend (last 6 months)
     const [monthlyRevenue] = await pool.query<RowDataPacket[]>(
-      `SELECT 
+      `SELECT
         DATE_FORMAT(o.created_at, '%Y-%m') as month,
         SUM(o.total_price) as revenue
        FROM orders o
@@ -111,7 +111,7 @@ export class DashboardService {
 
     // Orders by status
     const [ordersByStatus] = await pool.query<RowDataPacket[]>(
-      `SELECT 
+      `SELECT
         status,
         COUNT(*) as count
        FROM orders
@@ -130,7 +130,7 @@ export class DashboardService {
 
     // Recent orders (last 5)
     const [recentOrders] = await pool.query<RowDataPacket[]>(
-      `SELECT 
+      `SELECT
         o.id,
         o.quantity,
         o.total_price,
