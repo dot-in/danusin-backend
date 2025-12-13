@@ -5,7 +5,7 @@ import { AppError } from "./error.middleware.js";
 import type { AuthUser } from "../../shared/types/common.types.js";
 
 export interface AuthRequest extends Request {
-  user: AuthUser;
+  user?: AuthUser;
 }
 
 export const authenticate = async (

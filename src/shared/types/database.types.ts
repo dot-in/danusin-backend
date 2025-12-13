@@ -62,3 +62,23 @@ export interface NotificationRow extends RowDataPacket {
   is_read: boolean;
   created_at: string;
 }
+
+export interface StoreRow extends RowDataPacket {
+  id: number;
+  user_id: number;
+  store_name: string;
+  whatsapp: string;
+  email: string;
+  student_proof_url: string;
+  store_image: string | null;
+  status: "pending" | "approved" | "rejected";
+  created_at: string;
+}
+
+export interface UserOrderRow extends RowDataPacket {
+  id: number;
+  status: string;
+  total_amount: number;
+  created_at: string;
+  items: string | unknown[];
+}
