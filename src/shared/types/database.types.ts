@@ -49,7 +49,7 @@ export interface OrderRow extends RowDataPacket {
   product_id: number;
   quantity: number;
   total_price: number;
-  status: string;
+  status: "Menunggu Konfirmasi" | "Diproses" | "Selesai" | "Dibatalkan";
   created_at: string;
   updated_at: string;
 }
@@ -67,17 +67,18 @@ export interface StoreRow extends RowDataPacket {
   id: number;
   user_id: number;
   store_name: string;
+  description: string | null;
   whatsapp: string;
-  email: string;
-  student_proof_url: string;
-  store_image: string | null;
-  status: "pending" | "approved" | "rejected";
+  pickup_locations: string | null;
+  available_days: string | null;
+  is_active: boolean;
   created_at: string;
+  updated_at: string;
 }
 
 export interface UserOrderRow extends RowDataPacket {
   id: number;
-  status: string;
+  status: "Menunggu Konfirmasi" | "Diproses" | "Selesai" | "Dibatalkan";
   total_amount: number;
   created_at: string;
   items: string | unknown[];

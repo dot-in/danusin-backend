@@ -29,7 +29,7 @@ router.patch(
   "/me",
   authenticate,
   validate(updateProfileSchema),
-  usersController. updateProfile
+  usersController.updateProfile
 );
 
 router.patch("/me/profile-image", authenticate, usersController.updateProfileImage);
@@ -52,7 +52,7 @@ router.patch(
   "/me/password",
   authenticate,
   validate(changePasswordSchema),
-  usersController. changePassword
+  usersController.changePassword
 );
 
 router.get(
@@ -62,8 +62,17 @@ router.get(
   usersController.getUserOrders
 );
 
+// Create store (upgrade to seller)
 router.post(
   "/me/store",
+  authenticate,
+  validate(createStoreSchema),
+  usersController.createStore
+);
+
+// Alias for backward compatibility - upgrade-seller now points to createStore
+router.post(
+  "/me/upgrade-seller",
   authenticate,
   validate(createStoreSchema),
   usersController.createStore

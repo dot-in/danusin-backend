@@ -39,12 +39,11 @@ export const changePasswordSchema = z. object({
   }),
 });
 
-export const createStoreSchema = z. object({
+export const createStoreSchema = z.object({
   body: z.object({
-    store_name: z. string().min(3, "Nama toko minimal 3 karakter"),
-    whatsapp: z. string().regex(/^08\d{8,12}$/, "Nomor WhatsApp tidak valid"),
-    email: z.string().email("Format email tidak valid"),
-    student_proof_url: z.string().url("URL bukti mahasiswa tidak valid"),
+    store_name: z.string().min(3, "Nama toko minimal 3 karakter"),
+    description: z.string().min(10, "Deskripsi minimal 10 karakter").optional(),
+    whatsapp: z.string().regex(/^08\d{8,12}$/, "Nomor WhatsApp tidak valid"),
   }),
 });
 

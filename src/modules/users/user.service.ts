@@ -262,12 +262,10 @@ export class UserService {
   }
 
   // Create store (upgrade to seller)
-  async createStore(userId: number, data:  {
+  async createStore(userId: number, data: {
     store_name: string;
-    whatsapp:  string;
-    email: string;
-    student_proof_url: string;
-    store_image?:  string;
+    description?: string;
+    whatsapp: string;
   }) {
     // Check if user already has a store
     const [existingStore] = await pool. query<StoreRow[]>(
@@ -280,10 +278,10 @@ export class UserService {
     }
 
     // Create store
-    const [result] = await pool. query<any>(
-      `INSERT INTO stores (user_id, store_name, whatsapp, email, student_proof_url, store_image, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending', NOW())`,
-      [userId, data.store_name, data.whatsapp, data.email, data.student_proof_url, data.store_image || null]
+    const [result] = await pool.query<any>(
+      `INSERT INTO stores (user_id, store_name, description, whatsapp, created_at)
+       VALUES (?, ?, ?, ?, NOW())`,
+      [userId, data.store_name, data.description || null, data.whatsapp]
     );
 
     // Update user role to seller (pending verification)

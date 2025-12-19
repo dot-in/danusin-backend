@@ -50,13 +50,27 @@ export class OrdersController {
     next: NextFunction
   ): Promise<void> => {
     try {
+      // Debugging logs to help diagnose 400 responses and client issues
+      // These logs provide request metadata and the current authenticated user (if present)
+      console.debug("[DEBUG] getIncomingOrders - url:", req.originalUrl);
+      console.debug("[DEBUG] getIncomingOrders - method:", req.method);
+      console.debug("[DEBUG] getIncomingOrders - headers.authorization:", req.headers.authorization);
+      console.debug("[DEBUG] getIncomingOrders - query:", req.query);
+      console.debug("[DEBUG] getIncomingOrders - params:", req.params);
+      console.debug("[DEBUG] getIncomingOrders - user (pre-check):", req.user);
+
       if (!req.user) {
         errorResponse(res, 401, "Unauthorized");
         return;
       }
+
+      console.debug("[DEBUG] getIncomingOrders - user.id:", req.user.id, "role:", req.user.role);
+
       const orders = await this.orderService.getIncomingOrders(req.user.id);
       successResponse(res, 200, "Pesanan masuk berhasil diambil", orders);
     } catch (error) {
+      // Log error for easier debugging
+      console.error("[ERROR] getIncomingOrders -", error);
       next(error);
     }
   };
@@ -102,6 +116,25 @@ export class OrdersController {
       successResponse(res, 200, SUCCESS_MESSAGES.ORDER.STATUS_UPDATED, {
         order,
       });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  // Buyer cancels their order
+  cancelOrder = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
+      const orderId = Number.parseInt(req.params.id);
+      const order = await this.orderService.cancelOrder(orderId, req.user.id);
+      successResponse(res, 200, "Pesanan berhasil dibatalkan", { order });
     } catch (error) {
       next(error);
     }

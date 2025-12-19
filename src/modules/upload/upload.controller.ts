@@ -1,20 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
+import type { FileArray } from "express-fileupload";
 import { UploadService } from "./upload.service.js";
 import { successResponse } from "../../shared/utils/response.util.js";
 import { SUCCESS_MESSAGES } from "../../shared/constants/message.constant.js";
 import { AppError } from "../../core/middlewares/error.middleware.js";
 import { ERROR_MESSAGES } from "../../shared/constants/message.constant.js";
-
-interface FileUploadRequest extends Request {
-  files?: {
-    image?: {
-      name: string;
-      data: Buffer;
-      size: number;
-      mimetype: string;
-    };
-  };
-}
 
 export class UploadController {
   private uploadService: UploadService;
@@ -29,13 +19,24 @@ export class UploadController {
     next: NextFunction
   ): Promise<void> => {
     try {
-      const file = (req as FileUploadRequest).files?.image;
+      const files = req.files as FileArray | null | undefined;
 
-      if (!file) {
+      if (!files || !files.image) {
         throw new AppError(ERROR_MESSAGES.UPLOAD.NO_FILE, 400);
       }
 
-      const imageUrl = await this.uploadService.uploadImage(file);
+      // Handle both single file and array of files
+      const imageFile = Array.isArray(files.image)
+        ? files.image[0]
+        : files.image;
+
+      const imageUrl = await this.uploadService.uploadImage({
+        name: imageFile.name,
+        data: imageFile.data,
+        size: imageFile.size,
+        mimetype: imageFile.mimetype,
+      });
+
       successResponse(res, 200, SUCCESS_MESSAGES.UPLOAD.SUCCESS, {
         image_url: imageUrl,
       });

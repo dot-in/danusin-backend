@@ -6,7 +6,6 @@ import {
   registerSchema,
   loginSchema,
   updateProfileSchema,
-  upgradeSellerSchema,
 } from "./auth.validation.js";
 
 const router = Router();
@@ -21,11 +20,8 @@ router.put(
   validate(updateProfileSchema),
   authController.updateMe
 );
-router.post(
-  "/upgrade-seller",
-  authenticate,
-  validate(upgradeSellerSchema),
-  authController.upgradeSeller
-);
+
+// Note: upgrade-seller has been replaced with create-store in users module
+// Use POST /users/me/store instead
 
 export default router;
