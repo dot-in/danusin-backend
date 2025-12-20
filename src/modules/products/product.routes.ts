@@ -2,7 +2,6 @@ import { Router } from "express";
 import { ProductsController } from "./product.controller.js";
 import {
   authenticate,
-  authorize,
 } from "../../core/middlewares/auth.middleware.js";
 import { validate } from "../../core/middlewares/validation.middleware.js";
 import {
