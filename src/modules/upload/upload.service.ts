@@ -18,7 +18,6 @@ export class UploadService {
   private frontendDir: string;
   private maxSize: number;
   private allowedExtensions: string[];
-  // [NEW] Tambahkan properti Base URL Backend
   private backendUrl: string;
 
   constructor() {
@@ -27,8 +26,6 @@ export class UploadService {
     this.allowedExtensions = config.upload.allowedExtensions;
     this.frontendDir = path.resolve(process.cwd(), "../danusin-frontend/public/uploads");
 
-    // [NEW] Set URL Backend (Hardcode port 3001 sesuai permintaan)
-    // Di production sebaiknya ambil dari env, misal: config.app.url
     this.backendUrl = "http://localhost:3001";
   }
 
@@ -76,12 +73,9 @@ export class UploadService {
 
   async deleteImage(imageUrl: string): Promise<void> {
     try {
-      // [MODIFIED] Cara mengambil filename jika inputnya berupa URL lengkap
-      // Jika imageUrl = "http://localhost:3001/uploads/gambar.jpg"
-      // Maka kita perlu mengambil bagian terakhir setelah slash "/"
       const filename = imageUrl.split('/').pop();
 
-      if (!filename) return; // Guard clause jika filename kosong
+      if (!filename) return;
 
       const backendPath = path.join(this.uploadDir, filename);
       const frontendPath = path.join(this.frontendDir, filename);
