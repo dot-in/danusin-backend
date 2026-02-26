@@ -1,6 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
 import { OrderService } from "./order.service.js";
-import { successResponse, errorResponse } from "../../shared/utils/response.util.js";
+import {
+  successResponse,
+  errorResponse,
+} from "../../shared/utils/response.util.js";
 import { SUCCESS_MESSAGES } from "../../shared/constants/message.constant.js";
 
 export class OrdersController {
@@ -13,7 +16,7 @@ export class OrdersController {
   create = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
@@ -30,7 +33,7 @@ export class OrdersController {
   getMyOrders = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
@@ -47,30 +50,17 @@ export class OrdersController {
   getIncomingOrders = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
-      // Debugging logs to help diagnose 400 responses and client issues
-      // These logs provide request metadata and the current authenticated user (if present)
-      console.debug("[DEBUG] getIncomingOrders - url:", req.originalUrl);
-      console.debug("[DEBUG] getIncomingOrders - method:", req.method);
-      console.debug("[DEBUG] getIncomingOrders - headers.authorization:", req.headers.authorization);
-      console.debug("[DEBUG] getIncomingOrders - query:", req.query);
-      console.debug("[DEBUG] getIncomingOrders - params:", req.params);
-      console.debug("[DEBUG] getIncomingOrders - user (pre-check):", req.user);
-
       if (!req.user) {
         errorResponse(res, 401, "Unauthorized");
         return;
       }
 
-      console.debug("[DEBUG] getIncomingOrders - user.id:", req.user.id, "role:", req.user.role);
-
       const orders = await this.orderService.getIncomingOrders(req.user.id);
       successResponse(res, 200, "Pesanan masuk berhasil diambil", orders);
     } catch (error) {
-      // Log error for easier debugging
-      console.error("[ERROR] getIncomingOrders -", error);
       next(error);
     }
   };
@@ -78,7 +68,7 @@ export class OrdersController {
   getById = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
@@ -89,7 +79,7 @@ export class OrdersController {
       const order = await this.orderService.getById(
         orderId,
         req.user.id,
-        req.user.role
+        req.user.role,
       );
       successResponse(res, 200, "Detail pesanan berhasil diambil", order);
     } catch (error) {
@@ -100,7 +90,7 @@ export class OrdersController {
   updateStatus = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
@@ -111,7 +101,7 @@ export class OrdersController {
       const order = await this.orderService.updateStatus(
         orderId,
         req.user.id,
-        req.body.status
+        req.body.status,
       );
       successResponse(res, 200, SUCCESS_MESSAGES.ORDER.STATUS_UPDATED, {
         order,
@@ -125,7 +115,7 @@ export class OrdersController {
   cancelOrder = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {

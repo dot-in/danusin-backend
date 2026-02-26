@@ -1,6 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
 import { NotificationService } from "./notification.service.js";
-import { successResponse, errorResponse } from "../../shared/utils/response.util.js";
+import {
+  successResponse,
+  errorResponse,
+} from "../../shared/utils/response.util.js";
 import { SUCCESS_MESSAGES } from "../../shared/constants/message.constant.js";
 
 export class NotificationsController {
@@ -13,7 +16,7 @@ export class NotificationsController {
   getAll = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
@@ -27,10 +30,27 @@ export class NotificationsController {
     }
   };
 
+  getUnreadCount = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      if (!req.user) {
+        errorResponse(res, 401, "Unauthorized");
+        return;
+      }
+      const count = await this.notificationService.getUnreadCount(req.user.id);
+      successResponse(res, 200, "Jumlah notifikasi belum dibaca", { count });
+    } catch (error) {
+      next(error);
+    }
+  };
+
   markAsRead = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {
@@ -48,7 +68,7 @@ export class NotificationsController {
   markAllAsRead = async (
     req: Request,
     res: Response,
-    next: NextFunction
+    next: NextFunction,
   ): Promise<void> => {
     try {
       if (!req.user) {

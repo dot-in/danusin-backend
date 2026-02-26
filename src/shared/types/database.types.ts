@@ -19,7 +19,7 @@ export interface ImageRow extends RowDataPacket {
   id: number;
   url: string;
   alt_text: string | null;
-  entity_type: "product" | "user";
+  entity_type: "product" | "user" | "store";
   entity_id: number;
   is_primary: boolean;
   sort_order: number;
@@ -78,8 +78,14 @@ export interface StoreRow extends RowDataPacket {
 
 export interface UserOrderRow extends RowDataPacket {
   id: number;
+  product_id: number;
+  quantity: number;
+  total_price: number;
   status: "Menunggu Konfirmasi" | "Diproses" | "Selesai" | "Dibatalkan";
-  total_amount: number;
   created_at: string;
-  items: string | unknown[];
+  updated_at: string;
+  product_name?: string;
+  product_image?: string;
+  seller_name?: string;
+  store_name?: string;
 }

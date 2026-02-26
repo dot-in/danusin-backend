@@ -12,16 +12,31 @@ export class NotificationService {
        WHERE user_id = ? 
        ORDER BY created_at DESC 
        LIMIT 50`,
-      [userId]
+      [userId],
     );
 
     return notifications;
   }
 
+  async getUnreadCount(userId: number): Promise<number> {
+    const [rows] = await pool.query<any[]>(
+      "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = FALSE",
+      [userId],
+    );
+    return rows[0].count;
+  }
+
+  async create(userId: number, title: string, message: string): Promise<void> {
+    await pool.query(
+      "INSERT INTO notifications (user_id, title, message) VALUES (?, ?, ?)",
+      [userId, title, message],
+    );
+  }
+
   async markAsRead(notificationId: number, userId: number): Promise<void> {
     const [notifications] = await pool.query<NotificationRow[]>(
       "SELECT user_id FROM notifications WHERE id = ?",
-      [notificationId]
+      [notificationId],
     );
 
     if (notifications.length === 0) {
@@ -40,7 +55,7 @@ export class NotificationService {
   async markAllAsRead(userId: number): Promise<void> {
     await pool.query(
       "UPDATE notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE",
-      [userId]
+      [userId],
     );
   }
 }

@@ -24,9 +24,13 @@ export class UploadService {
     this.uploadDir = config.upload.dir;
     this.maxSize = config.upload.maxSize;
     this.allowedExtensions = config.upload.allowedExtensions;
-    this.frontendDir = path.resolve(process.cwd(), "../danusin-frontend/public/uploads");
+    this.frontendDir = path.resolve(
+      process.cwd(),
+      "../danusin-frontend/public/uploads",
+    );
 
-    this.backendUrl = "http://localhost:3001";
+    // Use config port for URL generation
+    this.backendUrl = `http://localhost:${config.server.port}`;
   }
 
   async uploadImage(file: UploadedFile): Promise<string> {
@@ -39,7 +43,7 @@ export class UploadService {
         `${ERROR_MESSAGES.UPLOAD.FILE_TOO_LARGE} (Max: ${
           this.maxSize / 1024 / 1024
         }MB)`,
-        400
+        400,
       );
     }
 
@@ -48,13 +52,13 @@ export class UploadService {
         `${
           ERROR_MESSAGES.UPLOAD.INVALID_TYPE
         }. Allowed: ${this.allowedExtensions.join(", ")}`,
-        400
+        400,
       );
     }
 
     await Promise.all([
-        fs.mkdir(this.uploadDir, { recursive: true }),
-        fs.mkdir(this.frontendDir, { recursive: true })
+      fs.mkdir(this.uploadDir, { recursive: true }),
+      fs.mkdir(this.frontendDir, { recursive: true }),
     ]);
 
     const ext = path.extname(file.name);
@@ -64,8 +68,8 @@ export class UploadService {
     const frontendPath = path.join(this.frontendDir, filename);
 
     await Promise.all([
-        fs.writeFile(backendPath, file.data),
-        fs.writeFile(frontendPath, file.data)
+      fs.writeFile(backendPath, file.data),
+      fs.writeFile(frontendPath, file.data),
     ]);
 
     return `${this.backendUrl}/uploads/${filename}`;
@@ -73,7 +77,7 @@ export class UploadService {
 
   async deleteImage(imageUrl: string): Promise<void> {
     try {
-      const filename = imageUrl.split('/').pop();
+      const filename = imageUrl.split("/").pop();
 
       if (!filename) return;
 
@@ -82,7 +86,7 @@ export class UploadService {
 
       await Promise.allSettled([
         fs.unlink(backendPath),
-        fs.unlink(frontendPath)
+        fs.unlink(frontendPath),
       ]);
     } catch (error) {}
   }

@@ -17,7 +17,7 @@ export interface Image {
   id: number;
   url: string;
   alt_text: string | null;
-  entity_type: "product" | "user";
+  entity_type: "product" | "user" | "store";
   entity_id: number;
   is_primary: boolean;
   sort_order: number;

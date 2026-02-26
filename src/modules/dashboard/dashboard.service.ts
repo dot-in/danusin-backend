@@ -9,7 +9,7 @@ export class DashboardService {
        FROM orders o
        JOIN products p ON o.product_id = p.id
        WHERE p.seller_id = ? AND o.status = 'Selesai'`,
-      [sellerId]
+      [sellerId],
     );
 
     // 2. Pendapatan Bulan Ini Saja (FIX untuk kartu "Penjualan Bulan Ini")
@@ -21,7 +21,7 @@ export class DashboardService {
        AND o.status = 'Selesai'
        AND MONTH(o.created_at) = MONTH(CURRENT_DATE())
        AND YEAR(o.created_at) = YEAR(CURRENT_DATE())`,
-      [sellerId]
+      [sellerId],
     );
 
     // 3. Hitung Pesanan Menunggu
@@ -30,7 +30,7 @@ export class DashboardService {
        FROM orders o
        JOIN products p ON o.product_id = p.id
        WHERE p.seller_id = ? AND o.status = 'Menunggu Konfirmasi'`,
-      [sellerId]
+      [sellerId],
     );
 
     // 4. Hitung Pesanan Selesai (FIX untuk kartu "Pesanan Selesai")
@@ -39,7 +39,7 @@ export class DashboardService {
        FROM orders o
        JOIN products p ON o.product_id = p.id
        WHERE p.seller_id = ? AND o.status = 'Selesai'`,
-      [sellerId]
+      [sellerId],
     );
 
     // 5. Total Produk
@@ -47,7 +47,7 @@ export class DashboardService {
       `SELECT COUNT(*) as total_products_count
        FROM products
        WHERE seller_id = ?`,
-      [sellerId]
+      [sellerId],
     );
 
     // 6. Total Semua Pesanan (Apapun statusnya)
@@ -56,7 +56,7 @@ export class DashboardService {
        FROM orders o
        JOIN products p ON o.product_id = p.id
        WHERE p.seller_id = ?`,
-      [sellerId]
+      [sellerId],
     );
 
     // 7. Pesanan Terbaru (List 5)
@@ -75,7 +75,7 @@ export class DashboardService {
        WHERE p.seller_id = ?
        ORDER BY o.created_at DESC
        LIMIT 5`,
-      [sellerId]
+      [sellerId],
     );
 
     // 8. Grafik Penjualan Bulanan (Data Chart)
@@ -89,7 +89,7 @@ export class DashboardService {
          AND o.created_at >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
        GROUP BY DATE_FORMAT(o.created_at, '%Y-%m'), DATE_FORMAT(o.created_at, '%b')
        ORDER BY DATE_FORMAT(o.created_at, '%Y-%m') ASC`,
-      [sellerId]
+      [sellerId],
     );
 
     // RETURN OBJECT (Disesuaikan dengan nama properti yang diminta Frontend)
@@ -117,30 +117,33 @@ export class DashboardService {
   async getBuyerSummary(buyerId: number) {
     const [totalOrdersResult] = await pool.query<RowDataPacket[]>(
       `SELECT COUNT(*) as total_orders_count FROM orders WHERE buyer_id = ?`,
-      [buyerId]
+      [buyerId],
     );
 
     const [ordersByStatus] = await pool.query<RowDataPacket[]>(
       `SELECT status, COUNT(*) as count FROM orders WHERE buyer_id = ? GROUP BY status`,
-      [buyerId]
+      [buyerId],
     );
 
     const [totalSpentResult] = await pool.query<RowDataPacket[]>(
       `SELECT COALESCE(SUM(total_price), 0) as total_spent FROM orders WHERE buyer_id = ? AND status != 'Dibatalkan'`,
-      [buyerId]
+      [buyerId],
     );
 
     const [recentOrders] = await pool.query<RowDataPacket[]>(
       `SELECT
         o.id, o.quantity, o.total_price, o.status, o.created_at,
-        p.name as product_name, p.image_url as product_image, u.name as seller_name
+        p.name as product_name,
+        img.url as product_image,
+        u.name as seller_name
        FROM orders o
        JOIN products p ON o.product_id = p.id
+       LEFT JOIN images img ON img.entity_type = 'product' AND img.entity_id = p.id AND img.is_primary = TRUE
        JOIN users u ON p.seller_id = u.id
        WHERE o.buyer_id = ?
        ORDER BY o.created_at DESC
        LIMIT 5`,
-      [buyerId]
+      [buyerId],
     );
 
     return {

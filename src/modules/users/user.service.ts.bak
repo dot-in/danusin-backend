@@ -1,69 +1,32 @@
 import { pool } from "../../core/config/database.config.js";
 import { AppError } from "../../core/middlewares/error.middleware.js";
-import {
-  UserRow,
-  StoreRow,
-  ImageRow,
-} from "../../shared/types/database.types.js";
+import { UserRow, StoreRow, UserOrderRow, ImageRow } from "../../shared/types/database.types.js";
 import { ERROR_MESSAGES } from "../../shared/constants/message.constant.js";
 import bcrypt from "bcrypt";
-import type { RowDataPacket } from "mysql2";
-
-interface UserOrderRow extends RowDataPacket {
-  id: number;
-  product_id: number;
-  product_name: string;
-  product_image: string | null;
-  quantity: number;
-  total_price: number;
-  status: string;
-  pickup_location: string | null;
-  pickup_day: string | null;
-  seller_name: string;
-  store_name: string | null;
-  created_at: string;
-}
 
 export class UserService {
-  // Get public profile - Fixed: uses images table instead of non-existent profile_image column
+  // Get public profile (existing)
   async getPublicProfile(userId: number) {
-    const [users] = await pool.query<UserRow[]>(
+    const [users] = await pool. query<UserRow[]>(
       `SELECT
         u.id,
-        u.name,
+        u. name,
         u.faculty,
         u.batch_year,
-        u.major,
+        u.profile_image,
         COUNT(p.id) as active_products_count
        FROM users u
-       LEFT JOIN products p ON u.id = p.seller_id AND p.is_active = TRUE AND p.po_close_date >= CURDATE()
-       WHERE u.id = ? AND u.role = 'seller'
+       LEFT JOIN products p ON u.id = p.seller_id AND p.po_close_date >= CURDATE()
+       WHERE u.id = ?  AND u.role = 'seller'
        GROUP BY u.id`,
-      [userId],
+      [userId]
     );
 
     if (users.length === 0) {
-      throw new AppError(ERROR_MESSAGES.USER.NOT_FOUND, 404);
+      throw new AppError(ERROR_MESSAGES.USER. NOT_FOUND, 404);
     }
 
-    // Get profile image from images table
-    const [images] = await pool.query<ImageRow[]>(
-      `SELECT url FROM images WHERE entity_type = 'user' AND entity_id = ? AND is_primary = TRUE LIMIT 1`,
-      [userId],
-    );
-
-    // Get store info
-    const [stores] = await pool.query<StoreRow[]>(
-      `SELECT store_name, description FROM stores WHERE user_id = ? AND is_active = TRUE`,
-      [userId],
-    );
-
-    return {
-      ...users[0],
-      profile_image: images.length > 0 ? images[0].url : null,
-      store_name: stores.length > 0 ? stores[0].store_name : null,
-      store_description: stores.length > 0 ? stores[0].description : null,
-    };
+    return users[0];
   }
 
   // Get current user profile
@@ -71,7 +34,7 @@ export class UserService {
     const [users] = await pool.query<UserRow[]>(
       `SELECT id, nim, name, email, whatsapp, major, faculty, batch_year, role, created_at
        FROM users WHERE id = ?`,
-      [userId],
+      [userId]
     );
 
     if (users.length === 0) {
@@ -81,7 +44,7 @@ export class UserService {
     // Get profile image from images table
     const [images] = await pool.query<ImageRow[]>(
       `SELECT url FROM images WHERE entity_type = 'user' AND entity_id = ? AND is_primary = TRUE LIMIT 1`,
-      [userId],
+      [userId]
     );
 
     const profileImage = images.length > 0 ? images[0].url : null;
@@ -97,15 +60,12 @@ export class UserService {
   }
 
   // Update profile
-  async updateProfile(
-    userId: number,
-    data: {
-      name?: string;
-      whatsapp?: string;
-      faculty?: string;
-      batch_year?: number;
-    },
-  ) {
+  async updateProfile(userId: number, data: {
+    name?: string;
+    whatsapp?: string;
+    faculty?: string;
+    batch_year?: number;
+  }) {
     const updateFields: string[] = [];
     const values: any[] = [];
 
@@ -135,7 +95,7 @@ export class UserService {
 
     await pool.query(
       `UPDATE users SET ${updateFields.join(", ")} WHERE id = ?`,
-      values,
+      values
     );
 
     return this.getMyProfile(userId);
@@ -143,21 +103,24 @@ export class UserService {
 
   // Update profile image
   async updateProfileImage(userId: number, imageUrl: string) {
+    // Check if user already has a profile image in the images table
     const [existingImage] = await pool.query<ImageRow[]>(
       `SELECT id FROM images WHERE entity_type = 'user' AND entity_id = ? AND is_primary = TRUE`,
-      [userId],
+      [userId]
     );
 
     if (existingImage.length > 0) {
-      await pool.query(`UPDATE images SET url = ? WHERE id = ?`, [
-        imageUrl,
-        existingImage[0].id,
-      ]);
+      // Update existing profile image
+      await pool.query(
+        `UPDATE images SET url = ? WHERE id = ?`,
+        [imageUrl, existingImage[0].id]
+      );
     } else {
+      // Insert new profile image
       await pool.query(
         `INSERT INTO images (url, alt_text, entity_type, entity_id, is_primary, sort_order)
          VALUES (?, 'Profile image', 'user', ?, TRUE, 0)`,
-        [imageUrl, userId],
+        [imageUrl, userId]
       );
     }
 
@@ -166,23 +129,25 @@ export class UserService {
 
   // Update email
   async updateEmail(userId: number, email: string, password: string) {
+    // Verify password first
     const [users] = await pool.query<UserRow[]>(
-      `SELECT password FROM users WHERE id = ?`,
-      [userId],
+      `SELECT password FROM users WHERE id = ? `,
+      [userId]
     );
 
-    if (users.length === 0) {
-      throw new AppError(ERROR_MESSAGES.USER.NOT_FOUND, 404);
+    if (users. length === 0) {
+      throw new AppError(ERROR_MESSAGES.USER. NOT_FOUND, 404);
     }
 
-    const isPasswordValid = await bcrypt.compare(password, users[0].password);
+    const isPasswordValid = await bcrypt.compare(password, users[0]. password);
     if (!isPasswordValid) {
       throw new AppError("Password tidak valid", 401);
     }
 
-    const [existingEmail] = await pool.query<UserRow[]>(
-      `SELECT id FROM users WHERE email = ? AND id != ?`,
-      [email, userId],
+    // Check if email already exists
+    const [existingEmail] = await pool. query<UserRow[]>(
+      `SELECT id FROM users WHERE email = ?  AND id != ?`,
+      [email, userId]
     );
 
     if (existingEmail.length > 0) {
@@ -191,7 +156,7 @@ export class UserService {
 
     await pool.query(
       `UPDATE users SET email = ?, updated_at = NOW() WHERE id = ?`,
-      [email, userId],
+      [email, userId]
     );
 
     return { message: "Email berhasil diperbarui" };
@@ -201,31 +166,24 @@ export class UserService {
   async updatePhone(userId: number, phone: string) {
     await pool.query(
       `UPDATE users SET whatsapp = ?, updated_at = NOW() WHERE id = ?`,
-      [phone, userId],
+      [phone, userId]
     );
 
     return { message: "Nomor telepon berhasil diperbarui" };
   }
 
   // Change password
-  async changePassword(
-    userId: number,
-    currentPassword: string,
-    newPassword: string,
-  ) {
+  async changePassword(userId: number, currentPassword: string, newPassword: string) {
     const [users] = await pool.query<UserRow[]>(
       `SELECT password FROM users WHERE id = ?`,
-      [userId],
+      [userId]
     );
 
     if (users.length === 0) {
       throw new AppError(ERROR_MESSAGES.USER.NOT_FOUND, 404);
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      currentPassword,
-      users[0].password,
-    );
+    const isPasswordValid = await bcrypt. compare(currentPassword, users[0].password);
     if (!isPasswordValid) {
       throw new AppError("Password saat ini tidak valid", 401);
     }
@@ -233,114 +191,119 @@ export class UserService {
     const hashedPassword = await bcrypt.hash(newPassword, 12);
     await pool.query(
       `UPDATE users SET password = ?, updated_at = NOW() WHERE id = ?`,
-      [hashedPassword, userId],
+      [hashedPassword, userId]
     );
 
     return { message: "Password berhasil diperbarui" };
   }
 
-  // Get user orders - FIXED: uses actual DB schema (no order_items table)
-  async getUserOrders(
-    userId: number,
-    options: {
-      page: number;
-      limit: number;
-      status?: string;
-    },
-  ) {
+  // Get user orders
+  async getUserOrders(userId: number, options: {
+    page:  number;
+    limit:  number;
+    status?: string;
+  }) {
     const offset = (options.page - 1) * options.limit;
     let whereClause = "WHERE o.buyer_id = ?";
-    const params: any[] = [userId];
+    const params:  any[] = [userId];
 
     if (options.status) {
-      whereClause += " AND o.status = ?";
+      whereClause += " AND o. status = ?";
       params.push(options.status);
     }
 
     const [orders] = await pool.query<UserOrderRow[]>(
       `SELECT
         o.id,
-        o.product_id,
-        o.quantity,
-        o.total_price,
         o.status,
-        o.pickup_location,
-        o.pickup_day,
+        o. total_amount,
         o.created_at,
-        p.name as product_name,
-        img.url as product_image,
-        u.name as seller_name,
-        s.store_name
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'product_id', oi.product_id,
+            'product_name', p.name,
+            'product_image', p.image_url,
+            'quantity', oi.quantity,
+            'price', oi.price,
+            'subtotal', oi. quantity * oi.price,
+            'pickup_day', p.pickup_day,
+            'pickup_location', p.pickup_location,
+            'store_name', s.store_name
+          )
+        ) as items
        FROM orders o
-       LEFT JOIN products p ON o.product_id = p.id
-       LEFT JOIN images img ON img.entity_type = 'product' AND img.entity_id = p.id AND img.is_primary = TRUE
-       LEFT JOIN users u ON o.seller_id = u.id
-       LEFT JOIN stores s ON o.seller_id = s.user_id
+       JOIN order_items oi ON o.id = oi.order_id
+       JOIN products p ON oi.product_id = p.id
+       JOIN stores s ON p. seller_id = s.user_id
        ${whereClause}
-       ORDER BY o.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...params, options.limit, offset],
+       GROUP BY o. id
+       ORDER BY o. created_at DESC
+       LIMIT ?  OFFSET ?`,
+      [... params, options.limit, offset]
     );
 
-    const [countResult] = await pool.query<any[]>(
-      `SELECT COUNT(*) as total FROM orders o ${whereClause}`,
-      params,
+    const [countResult] = await pool. query<any[]>(
+      `SELECT COUNT(DISTINCT o.id) as total FROM orders o ${whereClause}`,
+      params
     );
 
     return {
-      orders,
+      orders: orders.map((order) => ({
+        ...order,
+        items: typeof order.items === 'string' ? JSON.parse(order. items) : order.items
+      })),
       pagination: {
         page: options.page,
         limit: options.limit,
-        total: countResult[0].total,
-        totalPages: Math.ceil(countResult[0].total / options.limit),
+        total: countResult[0]. total,
+        totalPages: Math.ceil(countResult[0].total / options. limit),
       },
     };
   }
 
   // Create store (upgrade to seller)
-  async createStore(
-    userId: number,
-    data: {
-      store_name: string;
-      description?: string;
-      whatsapp: string;
-    },
-  ) {
-    const [existingStore] = await pool.query<StoreRow[]>(
-      `SELECT id FROM stores WHERE user_id = ?`,
-      [userId],
+  async createStore(userId: number, data: {
+    store_name: string;
+    description?: string;
+    whatsapp: string;
+  }) {
+    // Check if user already has a store
+    const [existingStore] = await pool. query<StoreRow[]>(
+      `SELECT id FROM stores WHERE user_id = ? `,
+      [userId]
     );
 
     if (existingStore.length > 0) {
       throw new AppError("Anda sudah memiliki toko", 409);
     }
 
+    // Create store
     const [result] = await pool.query<any>(
       `INSERT INTO stores (user_id, store_name, description, whatsapp, created_at)
        VALUES (?, ?, ?, ?, NOW())`,
-      [userId, data.store_name, data.description || null, data.whatsapp],
+      [userId, data.store_name, data.description || null, data.whatsapp]
     );
 
+    // Update user role to seller (pending verification)
     await pool.query(
       `UPDATE users SET role = 'seller', updated_at = NOW() WHERE id = ?`,
-      [userId],
+      [userId]
     );
 
     return {
       id: result.insertId,
-      message: "Toko berhasil dibuat",
+      message: "Toko berhasil dibuat dan menunggu verifikasi",
     };
   }
 
   // Get user's store
   async getMyStore(userId: number) {
     const [stores] = await pool.query<StoreRow[]>(
-      `SELECT * FROM stores WHERE user_id = ?`,
-      [userId],
+      `SELECT * FROM stores WHERE user_id = ? `,
+      [userId]
     );
 
-    if (stores.length === 0) {
+    if (stores. length === 0) {
       return null;
     }
 
@@ -350,12 +313,11 @@ export class UserService {
   // Helper methods
   private maskEmail(email: string): string {
     const [localPart, domain] = email.split("@");
-    const maskedLocal = localPart.charAt(0) + "*".repeat(localPart.length - 1);
+    const maskedLocal = localPart. charAt(0) + "*".repeat(localPart.length - 1);
     return `${maskedLocal}@${domain}`;
   }
 
   private maskPhone(phone: string): string {
-    if (phone.length <= 6) return phone;
-    return phone.slice(0, 4) + "*".repeat(phone.length - 6) + phone.slice(-2);
+    return phone.slice(0, 4) + "*".repeat(phone. length - 6) + phone.slice(-2);
   }
 }

@@ -11,7 +11,7 @@ interface SortOrderResult extends RowDataPacket {
 interface CreateImageDTO {
   url: string;
   alt_text?: string;
-  entity_type: "product" | "user";
+  entity_type: "product" | "user" | "store";
   entity_id: number;
   is_primary?: boolean;
   sort_order?: number;
@@ -28,12 +28,15 @@ export class ImageService {
   /**
    * Get all images for a specific entity
    */
-  async getByEntity(entityType: "product" | "user", entityId: number): Promise<Image[]> {
-    const [images] = await pool. query<ImageRow[]>(
+  async getByEntity(
+    entityType: "product" | "user" | "store",
+    entityId: number,
+  ): Promise<Image[]> {
+    const [images] = await pool.query<ImageRow[]>(
       `SELECT * FROM images
        WHERE entity_type = ?  AND entity_id = ?
        ORDER BY is_primary DESC, sort_order ASC`,
-      [entityType, entityId]
+      [entityType, entityId],
     );
     return images;
   }
@@ -42,9 +45,9 @@ export class ImageService {
    * Get image by ID
    */
   async getById(imageId: number): Promise<Image | null> {
-    const [images] = await pool. query<ImageRow[]>(
+    const [images] = await pool.query<ImageRow[]>(
       "SELECT * FROM images WHERE id = ?",
-      [imageId]
+      [imageId],
     );
     return images[0] || null;
   }
@@ -52,12 +55,15 @@ export class ImageService {
   /**
    * Get primary image for an entity
    */
-  async getPrimaryImage(entityType: "product" | "user", entityId: number): Promise<Image | null> {
+  async getPrimaryImage(
+    entityType: "product" | "user" | "store",
+    entityId: number,
+  ): Promise<Image | null> {
     const [images] = await pool.query<ImageRow[]>(
       `SELECT * FROM images
        WHERE entity_type = ? AND entity_id = ? AND is_primary = TRUE
        LIMIT 1`,
-      [entityType, entityId]
+      [entityType, entityId],
     );
     return images[0] || null;
   }
@@ -66,16 +72,16 @@ export class ImageService {
    * Get primary images for multiple entities (batch)
    */
   async getPrimaryImagesForEntities(
-    entityType: "product" | "user",
-    entityIds: number[]
+    entityType: "product" | "user" | "store",
+    entityIds: number[],
   ): Promise<Map<number, string>> {
     if (entityIds.length === 0) return new Map();
 
-    const placeholders = entityIds. map(() => "? ").join(",");
+    const placeholders = entityIds.map(() => "? ").join(",");
     const [images] = await pool.query<ImageRow[]>(
       `SELECT entity_id, url FROM images
        WHERE entity_type = ?  AND entity_id IN (${placeholders}) AND is_primary = TRUE`,
-      [entityType, ... entityIds]
+      [entityType, ...entityIds],
     );
 
     const imageMap = new Map<number, string>();
@@ -94,7 +100,7 @@ export class ImageService {
       await pool.query(
         `UPDATE images SET is_primary = FALSE
          WHERE entity_type = ? AND entity_id = ?`,
-        [data. entity_type, data.entity_id]
+        [data.entity_type, data.entity_id],
       );
     }
 
@@ -104,7 +110,7 @@ export class ImageService {
       const [result] = await pool.query<SortOrderResult[]>(
         `SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order
          FROM images WHERE entity_type = ? AND entity_id = ?`,
-        [data.entity_type, data.entity_id]
+        [data.entity_type, data.entity_id],
       );
       sortOrder = result[0].next_order;
     }
@@ -113,18 +119,18 @@ export class ImageService {
       `INSERT INTO images (url, alt_text, entity_type, entity_id, is_primary, sort_order)
        VALUES (?, ?, ?, ?, ?, ?)`,
       [
-        data. url,
+        data.url,
         data.alt_text || null,
-        data. entity_type,
+        data.entity_type,
         data.entity_id,
         data.is_primary || false,
         sortOrder,
-      ]
+      ],
     );
 
-    const [images] = await pool. query<ImageRow[]>(
+    const [images] = await pool.query<ImageRow[]>(
       "SELECT * FROM images WHERE id = ?",
-      [result.insertId]
+      [result.insertId],
     );
 
     return images[0];
@@ -148,9 +154,9 @@ export class ImageService {
    * Update image
    */
   async update(imageId: number, data: UpdateImageDTO): Promise<Image> {
-    const [existing] = await pool. query<ImageRow[]>(
+    const [existing] = await pool.query<ImageRow[]>(
       "SELECT * FROM images WHERE id = ?",
-      [imageId]
+      [imageId],
     );
 
     if (existing.length === 0) {
@@ -162,7 +168,7 @@ export class ImageService {
       await pool.query(
         `UPDATE images SET is_primary = FALSE
          WHERE entity_type = ? AND entity_id = ?  AND id != ?`,
-        [existing[0].entity_type, existing[0].entity_id, imageId]
+        [existing[0].entity_type, existing[0].entity_id, imageId],
       );
     }
 
@@ -178,12 +184,15 @@ export class ImageService {
 
     if (fields.length > 0) {
       values.push(imageId);
-      await pool.query(`UPDATE images SET ${fields.join(", ")} WHERE id = ? `, values);
+      await pool.query(
+        `UPDATE images SET ${fields.join(", ")} WHERE id = ? `,
+        values,
+      );
     }
 
-    const [updated] = await pool. query<ImageRow[]>(
+    const [updated] = await pool.query<ImageRow[]>(
       "SELECT * FROM images WHERE id = ?",
-      [imageId]
+      [imageId],
     );
 
     return updated[0];
@@ -195,26 +204,28 @@ export class ImageService {
   async setPrimary(imageId: number): Promise<Image> {
     const [existing] = await pool.query<ImageRow[]>(
       "SELECT * FROM images WHERE id = ?",
-      [imageId]
+      [imageId],
     );
 
-    if (existing. length === 0) {
+    if (existing.length === 0) {
       throw new AppError("Image tidak ditemukan", 404);
     }
 
     // Unset semua primary untuk entity ini
-    await pool. query(
+    await pool.query(
       `UPDATE images SET is_primary = FALSE
        WHERE entity_type = ? AND entity_id = ? `,
-      [existing[0].entity_type, existing[0].entity_id]
+      [existing[0].entity_type, existing[0].entity_id],
     );
 
     // Set image ini sebagai primary
-    await pool.query("UPDATE images SET is_primary = TRUE WHERE id = ?", [imageId]);
+    await pool.query("UPDATE images SET is_primary = TRUE WHERE id = ?", [
+      imageId,
+    ]);
 
     const [updated] = await pool.query<ImageRow[]>(
       "SELECT * FROM images WHERE id = ?",
-      [imageId]
+      [imageId],
     );
 
     return updated[0];
@@ -226,14 +237,14 @@ export class ImageService {
   async delete(imageId: number): Promise<void> {
     const [existing] = await pool.query<ImageRow[]>(
       "SELECT * FROM images WHERE id = ?",
-      [imageId]
+      [imageId],
     );
 
-    if (existing. length === 0) {
+    if (existing.length === 0) {
       throw new AppError("Image tidak ditemukan", 404);
     }
 
-    await pool. query("DELETE FROM images WHERE id = ?", [imageId]);
+    await pool.query("DELETE FROM images WHERE id = ?", [imageId]);
 
     // Jika yang dihapus adalah primary, set image pertama jadi primary
     if (existing[0].is_primary) {
@@ -241,7 +252,7 @@ export class ImageService {
         `UPDATE images SET is_primary = TRUE
          WHERE entity_type = ? AND entity_id = ?
          ORDER BY sort_order ASC LIMIT 1`,
-        [existing[0].entity_type, existing[0].entity_id]
+        [existing[0].entity_type, existing[0].entity_id],
       );
     }
   }
@@ -249,21 +260,28 @@ export class ImageService {
   /**
    * Delete all images for an entity
    */
-  async deleteByEntity(entityType: "product" | "user", entityId: number): Promise<void> {
+  async deleteByEntity(
+    entityType: "product" | "user" | "store",
+    entityId: number,
+  ): Promise<void> {
     await pool.query(
       "DELETE FROM images WHERE entity_type = ? AND entity_id = ?",
-      [entityType, entityId]
+      [entityType, entityId],
     );
   }
 
   /**
    * Reorder images
    */
-  async reorder(entityType: "product" | "user", entityId: number, imageIds: number[]): Promise<void> {
-    for (let i = 0; i < imageIds. length; i++) {
+  async reorder(
+    entityType: "product" | "user" | "store",
+    entityId: number,
+    imageIds: number[],
+  ): Promise<void> {
+    for (let i = 0; i < imageIds.length; i++) {
       await pool.query(
         "UPDATE images SET sort_order = ? WHERE id = ? AND entity_type = ? AND entity_id = ?",
-        [i, imageIds[i], entityType, entityId]
+        [i, imageIds[i], entityType, entityId],
       );
     }
   }

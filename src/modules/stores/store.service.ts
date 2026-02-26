@@ -8,7 +8,7 @@ export class StoreService {
   async getMyStore(userId: number) {
     const [stores] = await pool.query<StoreRow[]>(
       `SELECT * FROM stores WHERE user_id = ?`,
-      [userId]
+      [userId],
     );
 
     if (stores.length === 0) {
@@ -41,12 +41,12 @@ export class StoreService {
       store_name: string;
       description?: string;
       whatsapp: string;
-    }
+    },
   ) {
     // Check if user already has a store
     const [existingStore] = await pool.query<StoreRow[]>(
       `SELECT id FROM stores WHERE user_id = ?`,
-      [userId]
+      [userId],
     );
 
     if (existingStore.length > 0) {
@@ -57,19 +57,19 @@ export class StoreService {
     const [result] = await pool.query<any>(
       `INSERT INTO stores (user_id, store_name, description, whatsapp, created_at)
        VALUES (?, ?, ?, ?, NOW())`,
-      [userId, data.store_name, data.description || null, data.whatsapp]
+      [userId, data.store_name, data.description || null, data.whatsapp],
     );
 
     // Update user role to seller
     await pool.query(
       `UPDATE users SET role = 'seller', updated_at = NOW() WHERE id = ?`,
-      [userId]
+      [userId],
     );
 
     // Fetch updated user to generate new token
     const [users] = await pool.query<UserRow[]>(
       `SELECT id, nim, name, email, role FROM users WHERE id = ?`,
-      [userId]
+      [userId],
     );
 
     const user = users[0];
@@ -102,11 +102,11 @@ export class StoreService {
       pickup_locations?: string[];
       available_days?: string[];
       is_active?: boolean;
-    }
+    },
   ) {
     const [stores] = await pool.query<StoreRow[]>(
       `SELECT id FROM stores WHERE user_id = ?`,
-      [userId]
+      [userId],
     );
 
     if (stores.length === 0) {
@@ -150,7 +150,7 @@ export class StoreService {
 
     await pool.query(
       `UPDATE stores SET ${updateFields.join(", ")} WHERE id = ?`,
-      values
+      values,
     );
 
     return this.getMyStore(userId);
@@ -163,14 +163,14 @@ export class StoreService {
        FROM stores s
        JOIN users u ON s.user_id = u.id
        WHERE s.id = ? AND s.is_active = TRUE`,
-      [storeId]
+      [storeId],
     );
 
     if (stores.length === 0) {
       throw new AppError("Toko tidak ditemukan", 404);
     }
 
-    const store = stores[0];
+    const store = stores[0] as any;
     return {
       id: store.id,
       store_name: store.store_name,
@@ -183,6 +183,9 @@ export class StoreService {
         ? JSON.parse(store.available_days)
         : [],
       is_active: store.is_active,
+      owner_name: store.owner_name,
+      faculty: store.faculty,
+      batch_year: store.batch_year,
       created_at: store.created_at,
     };
   }
