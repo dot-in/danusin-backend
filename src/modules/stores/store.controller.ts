@@ -1,83 +1,45 @@
 import type { Request, Response, NextFunction } from "express";
 import { StoreService } from "./store.service.js";
-import {
-  successResponse,
-  errorResponse,
-} from "../../shared/utils/response.util.js";
+import { successResponse } from "../../shared/utils/response.util.js";
+import { AppError } from "../../core/middlewares/error.middleware.js";
 
 export class StoreController {
-  private storeService: StoreService;
+  private storeService = new StoreService();
 
-  constructor() {
-    this.storeService = new StoreService();
-  }
-
-  // Get current user's store
-  getMyStore = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
+  getMyStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!.id;
-      const store = await this.storeService.getMyStore(userId);
-
-      if (!store) {
-        errorResponse(res, 404, "Anda belum memiliki toko");
-        return;
-      }
-
+      if (!req.user) throw new AppError("Unauthorized", 401);
+      const store = await this.storeService.getMyStore(req.user.id);
+      if (!store) throw new AppError("Anda belum memiliki toko", 404);
       successResponse(res, 200, "Data toko berhasil diambil", store);
     } catch (error) {
       next(error);
     }
   };
 
-  // Create store (upgrade to seller)
-  createStore = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
+  createStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!.id;
-      const result = await this.storeService.createStore(userId, req.body);
-      successResponse(res, 201, result.message, {
-        id: result.id,
-        store_name: result.store_name,
-        description: result.description,
-        whatsapp: result.whatsapp,
-        token: result.token,
-      });
+      if (!req.user) throw new AppError("Unauthorized", 401);
+      const result = await this.storeService.createStore(req.user.id, req.body);
+      successResponse(res, 201, result.message, result);
     } catch (error) {
       next(error);
     }
   };
 
-  // Update store
-  updateStore = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
+  updateStore = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const userId = req.user!.id;
-      const store = await this.storeService.updateStore(userId, req.body);
+      if (!req.user) throw new AppError("Unauthorized", 401);
+      const store = await this.storeService.updateStore(req.user.id, req.body);
       successResponse(res, 200, "Toko berhasil diperbarui", store);
     } catch (error) {
       next(error);
     }
   };
 
-  // Get store by ID (public)
-  getStoreById = async (
-    req: Request,
-    res: Response,
-    next: NextFunction
-  ): Promise<void> => {
+  getStoreById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const storeId = parseInt(req.params.id, 10);
-      const store = await this.storeService.getStoreById(storeId);
+      const store = await this.storeService.getStoreById(Number.parseInt(req.params.id));
       successResponse(res, 200, "Data toko berhasil diambil", store);
     } catch (error) {
       next(error);

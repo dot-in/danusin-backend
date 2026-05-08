@@ -19,9 +19,9 @@ export const validate = (schema: ZodSchema) => {
           message: err.message,
         }));
         errorResponse(res, 400, "Validasi gagal", errors);
-      } else {
-        errorResponse(res, 400, "Validasi gagal");
+        return;
       }
+      errorResponse(res, 400, "Validasi gagal");
     }
   };
 };

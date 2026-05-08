@@ -9,24 +9,18 @@ export const generateToken = (payload: JWTPayload): string => {
     issuer: "danusin-backend",
     audience: "danusin-frontend",
   };
-
   return jwt.sign(payload, config.jwt.secret as Secret, options);
 };
 
 export const verifyToken = (token: string): JWTPayload => {
   try {
-    const decoded = jwt.verify(token, config.jwt.secret as Secret, {
+    return jwt.verify(token, config.jwt.secret as Secret, {
       issuer: "danusin-backend",
       audience: "danusin-frontend",
-    });
-    return decoded as JWTPayload;
+    }) as JWTPayload;
   } catch (error) {
-    if (error instanceof jwt.TokenExpiredError) {
-      throw new AppError("Token telah kadaluarsa", 401);
-    }
-    if (error instanceof jwt.JsonWebTokenError) {
-      throw new AppError("Token tidak valid", 401);
-    }
+    if (error instanceof jwt.TokenExpiredError) throw new AppError("Token telah kadaluarsa", 401);
+    if (error instanceof jwt.JsonWebTokenError) throw new AppError("Token tidak valid", 401);
     throw new AppError("Verifikasi token gagal", 401);
   }
 };

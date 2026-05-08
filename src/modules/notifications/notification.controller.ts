@@ -1,28 +1,15 @@
 import type { Request, Response, NextFunction } from "express";
 import { NotificationService } from "./notification.service.js";
-import {
-  successResponse,
-  errorResponse,
-} from "../../shared/utils/response.util.js";
+import { successResponse } from "../../shared/utils/response.util.js";
 import { SUCCESS_MESSAGES } from "../../shared/constants/message.constant.js";
+import { AppError } from "../../core/middlewares/error.middleware.js";
 
 export class NotificationsController {
-  private notificationService: NotificationService;
+  private notificationService = new NotificationService();
 
-  constructor() {
-    this.notificationService = new NotificationService();
-  }
-
-  getAll = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> => {
+  getAll = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
-        errorResponse(res, 401, "Unauthorized");
-        return;
-      }
+      if (!req.user) throw new AppError("Unauthorized", 401);
       const notifications = await this.notificationService.getAll(req.user.id);
       successResponse(res, 200, "Notifikasi berhasil diambil", notifications);
     } catch (error) {
@@ -30,16 +17,9 @@ export class NotificationsController {
     }
   };
 
-  getUnreadCount = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> => {
+  getUnreadCount = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
-        errorResponse(res, 401, "Unauthorized");
-        return;
-      }
+      if (!req.user) throw new AppError("Unauthorized", 401);
       const count = await this.notificationService.getUnreadCount(req.user.id);
       successResponse(res, 200, "Jumlah notifikasi belum dibaca", { count });
     } catch (error) {
@@ -47,34 +27,19 @@ export class NotificationsController {
     }
   };
 
-  markAsRead = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> => {
+  markAsRead = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
-        errorResponse(res, 401, "Unauthorized");
-        return;
-      }
-      const notificationId = Number.parseInt(req.params.id);
-      await this.notificationService.markAsRead(notificationId, req.user.id);
+      if (!req.user) throw new AppError("Unauthorized", 401);
+      await this.notificationService.markAsRead(Number.parseInt(req.params.id), req.user.id);
       successResponse(res, 200, SUCCESS_MESSAGES.NOTIFICATION.MARKED_READ);
     } catch (error) {
       next(error);
     }
   };
 
-  markAllAsRead = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-  ): Promise<void> => {
+  markAllAsRead = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user) {
-        errorResponse(res, 401, "Unauthorized");
-        return;
-      }
+      if (!req.user) throw new AppError("Unauthorized", 401);
       await this.notificationService.markAllAsRead(req.user.id);
       successResponse(res, 200, SUCCESS_MESSAGES.NOTIFICATION.ALL_MARKED_READ);
     } catch (error) {

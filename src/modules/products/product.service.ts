@@ -5,10 +5,10 @@ import type { ProductRow } from "../../shared/types/database.types.js";
 import type { Product, Image } from "../../shared/types/common.types.js";
 import { ERROR_MESSAGES } from "../../shared/constants/message.constant.js";
 import { ImageService } from "../images/image.service.js";
+import { getAvailableDays } from "../../shared/utils/date.util.js";
 
 const imageService = new ImageService();
 
-// Interface Types
 interface CountResult extends RowDataPacket {
   total: number;
 }
@@ -48,39 +48,7 @@ interface GetProductsQuery {
   limit?: number;
 }
 
-// Helper: Hitung available_days
-function getAvailableDays(startDate: string, endDate: string): string[] {
-  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
-  const availableDays = new Set<string>();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const current = new Date(start);
-
-  while (current <= end) {
-    availableDays.add(days[current.getDay()]);
-    current.setDate(current.getDate() + 1);
-  }
-
-  const dayOrder = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
-  return dayOrder.filter((day) => availableDays.has(day));
-}
-
 export class ProductService {
-  private async formatProduct(product: ProductRow, images?: Image[]): Promise<Product> {
-    const productImages = images || (await imageService.getByEntity("product", product.id));
-    const primaryImage = productImages.find((img) => img.is_primary) || productImages[0];
-
-    return {
-      ...product,
-      images: productImages,
-      primary_image: primaryImage?.url || null,
-      available_days: getAvailableDays(product.po_open_date, product.po_close_date),
-    };
-  }
-
-  /**
-   * Get all products
-   */
   async getAll(query: GetProductsQuery): Promise<{
     products: Product[];
     total: number;
@@ -120,28 +88,21 @@ export class ProductService {
     const totalPages = Math.ceil(total / limit);
     const offset = (page - 1) * limit;
 
-    const [products] = await pool.query<ProductRow[]>(
-      `SELECT p.id, p.seller_id, p.name, p.description, p.price, p.stock,
-        p.po_open_date, p.po_close_date, p.delivery_date, p.created_at, p.updated_at,
-        u.name as seller_name, u.faculty as seller_faculty, u.whatsapp as seller_whatsapp
+    const [products] = await pool.query<(ProductRow & { primary_image: string | null; seller_name: string; seller_faculty: string; seller_whatsapp: string })[]>(
+      `SELECT p.*, 
+        u.name as seller_name, u.faculty as seller_faculty, u.whatsapp as seller_whatsapp,
+        i.url as primary_image
        FROM products p
        LEFT JOIN users u ON p.seller_id = u.id
+       LEFT JOIN images i ON i.entity_type = 'product' AND i.entity_id = p.id AND i.is_primary = TRUE
        ${whereClause}
        ORDER BY p.created_at DESC
        LIMIT ? OFFSET ?`,
       [...queryParams, limit, offset]
     );
 
-    if (products.length === 0) {
-      return { products: [], total, meta: { page, limit, total, totalPages } };
-    }
-
-    const productIds = products.map((p) => p.id);
-    const primaryImages = await imageService.getPrimaryImagesForEntities("product", productIds);
-
     const formattedProducts: Product[] = products.map((p) => ({
       ...p,
-      primary_image: primaryImages.get(p.id) || null,
       available_days: getAvailableDays(p.po_open_date, p.po_close_date),
     }));
 
@@ -152,148 +113,163 @@ export class ProductService {
     };
   }
 
-  /**
-   * Get product by ID
-   */
   async getById(productId: number): Promise<Product> {
-    const [products] = await pool.query<ProductRow[]>(
-      `SELECT p.id, p.seller_id, p.name, p.description, p.price, p.stock,
-        p.po_open_date, p.po_close_date, p.delivery_date, p.created_at, p.updated_at,
-        u.name as seller_name, u.faculty as seller_faculty, u.whatsapp as seller_whatsapp
+    const [products] = await pool.query<(ProductRow & { seller_name: string; seller_faculty: string; seller_whatsapp: string })[]>(
+      `SELECT p.*, u.name as seller_name, u.faculty as seller_faculty, u.whatsapp as seller_whatsapp
        FROM products p
        LEFT JOIN users u ON p.seller_id = u.id
        WHERE p.id = ?`,
       [productId]
     );
 
-    if (products.length === 0) {
-      throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
-    }
-    return this.formatProduct(products[0]);
+    if (products.length === 0) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
+
+    const images = await imageService.getByEntity("product", productId);
+    const primaryImage = images.find((img) => img.is_primary) || images[0];
+
+    return {
+      ...products[0],
+      images,
+      primary_image: primaryImage?.url || null,
+      available_days: getAvailableDays(products[0].po_open_date, products[0].po_close_date),
+    };
   }
 
-  /**
-   * Get seller's products (My Products)
-   * PERBAIKAN: Menambahkan pengecekan length dan pemetaan image yang benar
-   */
   async getMySeller(sellerId: number): Promise<Product[]> {
-    const [products] = await pool.query<ProductRow[]>(
-      "SELECT * FROM products WHERE seller_id = ? ORDER BY created_at DESC",
+    const [products] = await pool.query<(ProductRow & { primary_image: string | null })[]>(
+      `SELECT p.*, i.url as primary_image
+       FROM products p
+       LEFT JOIN images i ON i.entity_type = 'product' AND i.entity_id = p.id AND i.is_primary = TRUE
+       WHERE p.seller_id = ? 
+       ORDER BY p.created_at DESC`,
       [sellerId]
     );
 
-    // Jika tidak ada produk, return array kosong segera
-    if (products.length === 0) {
-      return [];
-    }
-
-    const productIds = products.map((p) => p.id);
-    // Pastikan getPrimaryImagesForEntities mengembalikan Map<number, string>
-    const primaryImages = await imageService.getPrimaryImagesForEntities("product", productIds);
-
     return products.map((p) => ({
       ...p,
-      // Ambil image dari Map berdasarkan ID produk
-      primary_image: primaryImages.get(p.id) || null,
       available_days: getAvailableDays(p.po_open_date, p.po_close_date),
     }));
   }
 
-  /**
-   * Create product
-   */
   async create(sellerId: number, data: CreateProductDTO): Promise<Product> {
-    const [result] = await pool.query<ResultSetHeader>(
-      `INSERT INTO products (seller_id, name, description, price, stock, po_open_date, po_close_date, delivery_date)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [sellerId, data.name, data.description, data.price, data.stock || 0, data.po_open_date, data.po_close_date, data.delivery_date || null]
-    );
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
 
-    const productId = result.insertId;
+      const [result] = await conn.query<ResultSetHeader>(
+        `INSERT INTO products (seller_id, name, description, price, stock, po_open_date, po_close_date, delivery_date)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [sellerId, data.name, data.description, data.price, data.stock || 0, data.po_open_date, data.po_close_date, data.delivery_date || null]
+      );
 
-    if (data.images && data.images.length > 0) {
-      const imageData = data.images.map((url, index) => ({
-        url,
-        entity_type: "product" as const,
-        entity_id: productId,
-        is_primary: index === 0,
-        sort_order: index,
-      }));
-      await imageService.createMany(imageData);
-    }
-    return this.getById(productId);
-  }
+      const productId = result.insertId;
 
-  /**
-   * Update product
-   */
-  async update(productId: number, sellerId: number, data: UpdateProductDTO): Promise<Product> {
-    const [products] = await pool.query<ProductRow[]>("SELECT seller_id FROM products WHERE id = ?", [productId]);
-    if (products.length === 0) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
-    if (products[0].seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
-
-    const { images, add_images, remove_image_ids, ...productData } = data;
-    const fields: string[] = [];
-    const values: QueryParamValue[] = [];
-
-    for (const [key, value] of Object.entries(productData)) {
-      if (value !== undefined) {
-        fields.push(`${key} = ?`);
-        values.push(value);
-      }
-    }
-
-    if (fields.length > 0) {
-      values.push(productId);
-      await pool.query(`UPDATE products SET ${fields.join(", ")} WHERE id = ?`, values);
-    }
-
-    // Logic Images
-    if (images !== undefined) {
-      await imageService.deleteByEntity("product", productId);
-      if (images.length > 0) {
-        const imageData = images.map((url, index) => ({
+      if (data.images?.length) {
+        const imageData = data.images.map((url, index) => ({
           url,
           entity_type: "product" as const,
           entity_id: productId,
           is_primary: index === 0,
           sort_order: index,
         }));
-        await imageService.createMany(imageData);
+        await imageService.createMany(imageData, conn);
       }
-    }
 
-    if (add_images && add_images.length > 0) {
-      const existingImages = await imageService.getByEntity("product", productId);
-      const startOrder = existingImages.length;
-      const imageData = add_images.map((url, index) => ({
-        url,
-        entity_type: "product" as const,
-        entity_id: productId,
-        is_primary: existingImages.length === 0 && index === 0,
-        sort_order: startOrder + index,
-      }));
-      await imageService.createMany(imageData);
+      await conn.commit();
+      return this.getById(productId);
+    } catch (error) {
+      await conn.rollback();
+      throw error;
+    } finally {
+      conn.release();
     }
-
-    if (remove_image_ids && remove_image_ids.length > 0) {
-      for (const imageId of remove_image_ids) {
-        await imageService.delete(imageId);
-      }
-    }
-
-    return this.getById(productId);
   }
 
-  /**
-   * Delete product
-   */
-  async delete(productId: number, sellerId: number): Promise<void> {
-    const [products] = await pool.query<ProductRow[]>("SELECT seller_id FROM products WHERE id = ?", [productId]);
-    if (products.length === 0) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
-    if (products[0].seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
+  async update(productId: number, sellerId: number, data: UpdateProductDTO): Promise<Product> {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
 
-    await imageService.deleteByEntity("product", productId);
-    await pool.query("DELETE FROM products WHERE id = ?", [productId]);
+      const [products] = await conn.query<ProductRow[]>("SELECT seller_id FROM products WHERE id = ? FOR UPDATE", [productId]);
+      if (products.length === 0) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
+      if (products[0].seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
+
+      const { images, add_images, remove_image_ids, ...productData } = data;
+      const fields: string[] = [];
+      const values: QueryParamValue[] = [];
+
+      for (const [key, value] of Object.entries(productData)) {
+        if (value !== undefined) {
+          fields.push(`${key} = ?`);
+          values.push(value);
+        }
+      }
+
+      if (fields.length > 0) {
+        values.push(productId);
+        await conn.query(`UPDATE products SET ${fields.join(", ")} WHERE id = ?`, values);
+      }
+
+      if (images !== undefined) {
+        await imageService.deleteByEntity("product", productId, conn);
+        if (images.length > 0) {
+          const imageData = images.map((url, index) => ({
+            url,
+            entity_type: "product" as const,
+            entity_id: productId,
+            is_primary: index === 0,
+            sort_order: index,
+          }));
+          await imageService.createMany(imageData, conn);
+        }
+      }
+
+      if (add_images?.length) {
+        const existingImages = await imageService.getByEntity("product", productId, conn);
+        const imageData = add_images.map((url, index) => ({
+          url,
+          entity_type: "product" as const,
+          entity_id: productId,
+          is_primary: existingImages.length === 0 && index === 0,
+          sort_order: existingImages.length + index,
+        }));
+        await imageService.createMany(imageData, conn);
+      }
+
+      if (remove_image_ids?.length) {
+        for (const imageId of remove_image_ids) {
+          await imageService.delete(imageId, conn);
+        }
+      }
+
+      await conn.commit();
+      return this.getById(productId);
+    } catch (error) {
+      await conn.rollback();
+      throw error;
+    } finally {
+      conn.release();
+    }
+  }
+
+  async delete(productId: number, sellerId: number): Promise<void> {
+    const conn = await pool.getConnection();
+    try {
+      await conn.beginTransaction();
+
+      const [products] = await conn.query<ProductRow[]>("SELECT seller_id FROM products WHERE id = ? FOR UPDATE", [productId]);
+      if (products.length === 0) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
+      if (products[0].seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
+
+      await imageService.deleteByEntity("product", productId, conn);
+      await conn.query("DELETE FROM products WHERE id = ?", [productId]);
+
+      await conn.commit();
+    } catch (error) {
+      await conn.rollback();
+      throw error;
+    } finally {
+      conn.release();
+    }
   }
 }

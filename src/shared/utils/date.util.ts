@@ -1,36 +1,34 @@
 export const isDateInFuture = (date: Date | string): boolean => {
-  const compareDate = typeof date === "string" ? new Date(date) : date;
-  return compareDate > new Date();
+  return new Date(date) > new Date();
 };
 
 export const isDateInPast = (date: Date | string): boolean => {
-  const compareDate = typeof date === "string" ? new Date(date) : date;
-  return compareDate < new Date();
+  return new Date(date) < new Date();
 };
 
-export const isDateBetween = (
-  date: Date | string,
-  start: Date | string,
-  end: Date | string
-): boolean => {
-  const checkDate = typeof date === "string" ? new Date(date) : date;
-  const startDate = typeof start === "string" ? new Date(start) : start;
-  const endDate = typeof end === "string" ? new Date(end) : end;
-
-  return checkDate >= startDate && checkDate <= endDate;
+export const isDateBetween = (date: Date | string, start: Date | string, end: Date | string): boolean => {
+  const d = new Date(date);
+  return d >= new Date(start) && d <= new Date(end);
 };
 
 export const formatDateToSQL = (date: Date): string => {
   return date.toISOString().split("T")[0];
 };
 
-export const isPOOpen = (
-  openDate: Date | string,
-  closeDate: Date | string
-): boolean => {
-  const today = new Date();
-  const open = typeof openDate === "string" ? new Date(openDate) : openDate;
-  const close = typeof closeDate === "string" ? new Date(closeDate) : closeDate;
+export const isPOOpen = (openDate: Date | string, closeDate: Date | string): boolean => {
+  const now = new Date();
+  return now >= new Date(openDate) && now <= new Date(closeDate);
+};
 
-  return today >= open && today <= close;
+export const getAvailableDays = (startDate: string, endDate: string): string[] => {
+  const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+  const order = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
+  const available = new Set<string>();
+  const curr = new Date(startDate);
+  const end = new Date(endDate);
+  while (curr <= end) {
+    available.add(days[curr.getDay()]);
+    curr.setDate(curr.getDate() + 1);
+  }
+  return order.filter(d => available.has(d));
 };

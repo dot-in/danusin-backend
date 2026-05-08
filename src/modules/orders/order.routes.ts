@@ -14,41 +14,11 @@ import {
 const router = Router();
 const ordersController = new OrdersController();
 
-router.post(
-  "/",
-  authenticate,
-  validate(createOrderSchema),
-  ordersController.create,
-);
+router.post("/", authenticate, validate(createOrderSchema), ordersController.create);
 router.get("/me", authenticate, ordersController.getMyOrders);
-router.get(
-  "/seller/incoming",
-  authenticate,
-  authorize("seller"),
-  ordersController.getIncomingOrders,
-);
-
-router.get(
-  "/seller-orders",
-  authenticate,
-  authorize("seller"),
-  ordersController.getIncomingOrders,
-);
-
+router.get("/seller/incoming", authenticate, authorize("seller"), ordersController.getIncomingOrders);
 router.post("/:id/cancel", authenticate, ordersController.cancelOrder);
-
-router.get(
-  "/:id",
-  authenticate,
-  validate(getOrderSchema),
-  ordersController.getById,
-);
-router.patch(
-  "/:id/status",
-  authenticate,
-  authorize("seller"),
-  validate(updateOrderStatusSchema),
-  ordersController.updateStatus,
-);
+router.get("/:id", authenticate, validate(getOrderSchema), ordersController.getById);
+router.patch("/:id/status", authenticate, authorize("seller"), validate(updateOrderStatusSchema), ordersController.updateStatus);
 
 export default router;

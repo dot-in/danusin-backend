@@ -5,17 +5,12 @@ import { logger } from "./core/config/logger.config.js";
 
 const startServer = async () => {
   try {
-    // Test database connection
-    const isDbConnected = await testConnection();
-    if (!isDbConnected) {
+    if (!(await testConnection())) {
       logger.error("Failed to connect to database. Exiting...");
       process.exit(1);
     }
 
-    // Create Express app
     const app = createApp();
-
-    // Start server
     const server = app.listen(config.server.port, () => {
       logger.info(`
 🚀 Server is running!
@@ -26,39 +21,23 @@ const startServer = async () => {
       `);
     });
 
-    // Graceful shutdown
     const gracefulShutdown = async (signal: string) => {
       logger.info(`${signal} received. Starting graceful shutdown...`);
-
       server.close(async () => {
-        logger.info("HTTP server closed");
-
         await closePool();
-        logger.info("Database pool closed");
-
-        logger.info("Graceful shutdown completed");
         process.exit(0);
       });
-
-      // Force shutdown after 10 seconds
-      setTimeout(() => {
-        logger.error("Forcing shutdown after timeout");
-        process.exit(1);
-      }, 10000);
+      setTimeout(() => process.exit(1), 10000);
     };
 
-    // Handle signals
     process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
     process.on("SIGINT", () => gracefulShutdown("SIGINT"));
-
-    // Handle uncaught errors
     process.on("uncaughtException", (error) => {
       logger.error({ error }, "Uncaught Exception");
       process.exit(1);
     });
-
-    process.on("unhandledRejection", (reason, promise) => {
-      logger.error({ reason, promise }, "Unhandled Rejection");
+    process.on("unhandledRejection", (reason) => {
+      logger.error({ reason }, "Unhandled Rejection");
       process.exit(1);
     });
   } catch (error) {

@@ -1,27 +1,21 @@
 import { z } from "zod";
 import { ORDER_STATUS } from "../../shared/constants/status.constant.js";
 
+const numericId = z.string().regex(/^\d+$/);
+
 export const createOrderSchema = z.object({
   body: z.object({
-    product_id: z.number().int().positive("Product ID harus valid"),
-    quantity: z
-      .number()
-      .int()
-      .positive("Quantity harus lebih dari 0")
-      .max(1000, "Quantity maksimal 1000"),
+    product_id: z.number().int().positive(),
+    quantity: z.number().int().positive().max(1000),
   }),
 });
 
 export const getOrderSchema = z.object({
-  params: z.object({
-    id: z.string().regex(/^\d+$/, "ID harus berupa angka"),
-  }),
+  params: z.object({ id: numericId }),
 });
 
 export const updateOrderStatusSchema = z.object({
-  params: z.object({
-    id: z.string().regex(/^\d+$/, "ID harus berupa angka"),
-  }),
+  params: z.object({ id: numericId }),
   body: z.object({
     status: z.enum([
       ORDER_STATUS.PENDING,

@@ -1,11 +1,9 @@
 export const isValidEmail = (email: string): boolean => {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  return emailRegex.test(email);
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
 
 export const isValidWhatsApp = (phone: string): boolean => {
-  const phoneRegex = /^(\+62|62|0)[0-9]{9,12}$/;
-  return phoneRegex.test(phone.replace(/\s+/g, ""));
+  return /^(\+62|62|0)[0-9]{9,12}$/.test(phone.replace(/\s+/g, ""));
 };
 
 export const isValidNIM = (nim: string): boolean => {
@@ -16,10 +14,7 @@ export const sanitizeString = (str: string): string => {
   return str.trim().replace(/\s+/g, " ");
 };
 
-export const isValidImageExtension = (
-  filename: string,
-  allowedExtensions: string[]
-): boolean => {
+export const isValidImageExtension = (filename: string, allowedExtensions: string[]): boolean => {
   const ext = filename.split(".").pop()?.toLowerCase();
   return ext ? allowedExtensions.includes(ext) : false;
 };

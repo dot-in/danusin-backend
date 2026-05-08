@@ -21,7 +21,4 @@ router.put(
   authController.updateMe
 );
 
-// Note: upgrade-seller has been replaced with create-store in users module
-// Use POST /users/me/store instead
-
 export default router;

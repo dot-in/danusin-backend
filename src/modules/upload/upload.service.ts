@@ -14,80 +14,36 @@ interface UploadedFile {
 }
 
 export class UploadService {
-  private uploadDir: string;
-  private frontendDir: string;
-  private maxSize: number;
-  private allowedExtensions: string[];
-  private backendUrl: string;
-
-  constructor() {
-    this.uploadDir = config.upload.dir;
-    this.maxSize = config.upload.maxSize;
-    this.allowedExtensions = config.upload.allowedExtensions;
-    this.frontendDir = path.resolve(
-      process.cwd(),
-      "../danusin-frontend/public/uploads",
-    );
-
-    // Use config port for URL generation
-    this.backendUrl = `http://localhost:${config.server.port}`;
-  }
+  private uploadDir = config.upload.dir;
+  private frontendDir = path.resolve(process.cwd(), "../danusin-frontend/public/uploads");
+  private maxSize = config.upload.maxSize;
+  private allowedExtensions = config.upload.allowedExtensions;
+  private backendUrl = `http://localhost:${config.server.port}`;
 
   async uploadImage(file: UploadedFile): Promise<string> {
-    if (!file) {
-      throw new AppError(ERROR_MESSAGES.UPLOAD.NO_FILE, 400);
-    }
-
-    if (file.size > this.maxSize) {
-      throw new AppError(
-        `${ERROR_MESSAGES.UPLOAD.FILE_TOO_LARGE} (Max: ${
-          this.maxSize / 1024 / 1024
-        }MB)`,
-        400,
-      );
-    }
-
+    if (!file) throw new AppError(ERROR_MESSAGES.UPLOAD.NO_FILE, 400);
+    if (file.size > this.maxSize) throw new AppError(`${ERROR_MESSAGES.UPLOAD.FILE_TOO_LARGE} (Max: ${this.maxSize / 1024 / 1024}MB)`, 400);
     if (!isValidImageExtension(file.name, this.allowedExtensions)) {
-      throw new AppError(
-        `${
-          ERROR_MESSAGES.UPLOAD.INVALID_TYPE
-        }. Allowed: ${this.allowedExtensions.join(", ")}`,
-        400,
-      );
+      throw new AppError(`${ERROR_MESSAGES.UPLOAD.INVALID_TYPE}. Allowed: ${this.allowedExtensions.join(", ")}`, 400);
     }
 
+    await Promise.all([fs.mkdir(this.uploadDir, { recursive: true }), fs.mkdir(this.frontendDir, { recursive: true })]);
+
+    const filename = `${crypto.randomUUID()}${path.extname(file.name)}`;
     await Promise.all([
-      fs.mkdir(this.uploadDir, { recursive: true }),
-      fs.mkdir(this.frontendDir, { recursive: true }),
-    ]);
-
-    const ext = path.extname(file.name);
-    const filename = `${crypto.randomUUID()}${ext}`;
-
-    const backendPath = path.join(this.uploadDir, filename);
-    const frontendPath = path.join(this.frontendDir, filename);
-
-    await Promise.all([
-      fs.writeFile(backendPath, file.data),
-      fs.writeFile(frontendPath, file.data),
+      fs.writeFile(path.join(this.uploadDir, filename), file.data),
+      fs.writeFile(path.join(this.frontendDir, filename), file.data),
     ]);
 
     return `${this.backendUrl}/uploads/${filename}`;
   }
 
   async deleteImage(imageUrl: string): Promise<void> {
-    try {
-      const filename = imageUrl.split("/").pop();
-
-      if (!filename) return;
-
-      const backendPath = path.join(this.uploadDir, filename);
-      const frontendPath = path.join(this.frontendDir, filename);
-
-      await Promise.allSettled([
-        fs.unlink(backendPath),
-        fs.unlink(frontendPath),
-      ]);
-    } catch (error) {}
+    const filename = imageUrl.split("/").pop();
+    if (!filename) return;
+    await Promise.allSettled([
+      fs.unlink(path.join(this.uploadDir, filename)),
+      fs.unlink(path.join(this.frontendDir, filename)),
+    ]);
   }
 }
