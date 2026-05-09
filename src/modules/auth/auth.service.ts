@@ -1,122 +1,122 @@
-import type { ResultSetHeader } from "mysql2";
-import { pool } from "../../core/config/database.config.js";
+import { prisma } from "../../core/config/database.config.js";
 import { AppError } from "../../core/middlewares/error.middleware.js";
-import { hashPassword, comparePassword } from "../../shared/utils/bcrypt.util.js";
+import {
+  hashPassword,
+  comparePassword,
+} from "../../shared/utils/bcrypt.util.js";
 import { generateToken } from "../../shared/utils/jwt.util.js";
-import type { UserRow } from "../../shared/types/database.types.js";
-import type { UserWithoutPassword } from "../../shared/types/common.types.js";
 import { ERROR_MESSAGES } from "../../shared/constants/message.constant.js";
+import type { UserWithoutPassword } from "../../shared/types/common.types.js";
+import { Role } from "@prisma/client";
 
-interface RegisterDTO {
-  nim: string;
-  name: string;
-  major: string;
-  faculty: string;
-  batch_year: number;
-  whatsapp: string;
-  email: string;
-  password: string;
-  role?: "buyer" | "seller";
-}
-
-interface UpdateProfileDTO {
-  name?: string;
-  major?: string;
-  faculty?: string;
-  batch_year?: number;
-  whatsapp?: string;
-}
+import { RegisterDTO, UpdateProfileDTO } from "./auth.model.js";
 
 export class AuthService {
   async register(userData: RegisterDTO): Promise<UserWithoutPassword> {
-    const connection = await pool.getConnection();
-    try {
-      await connection.beginTransaction();
+    return await prisma.$transaction(async (tx) => {
+      const existing = await tx.user.findFirst({
+        where: {
+          OR: [{ nim: userData.nim }, { email: userData.email }],
+        },
+      });
 
-      const [existing] = await connection.query<UserRow[]>(
-        "SELECT nim, email FROM users WHERE nim = ? OR email = ?",
-        [userData.nim, userData.email]
-      );
-
-      if (existing.length > 0) {
-        if (existing.some((u) => u.nim === userData.nim)) throw new AppError(ERROR_MESSAGES.AUTH.NIM_EXISTS, 400);
-        if (existing.some((u) => u.email === userData.email)) throw new AppError(ERROR_MESSAGES.AUTH.EMAIL_EXISTS, 400);
+      if (existing) {
+        if (existing.nim === userData.nim)
+          throw new AppError(ERROR_MESSAGES.AUTH.NIM_EXISTS, 400);
+        if (existing.email === userData.email)
+          throw new AppError(ERROR_MESSAGES.AUTH.EMAIL_EXISTS, 400);
       }
 
       const hashedPassword = await hashPassword(userData.password);
-      const [result] = await connection.query<ResultSetHeader>(
-        `INSERT INTO users (nim, name, major, faculty, batch_year, whatsapp, email, password, role)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [userData.nim, userData.name, userData.major, userData.faculty, userData.batch_year, userData.whatsapp, userData.email, hashedPassword, userData.role || "buyer"]
-      );
+      const user = await tx.user.create({
+        data: {
+          ...userData,
+          password: hashedPassword,
+          role: userData.role || Role.buyer,
+        },
+      });
 
-      const [users] = await connection.query<UserRow[]>(
-        `SELECT id, nim, name, major, faculty, batch_year, whatsapp, email, role, created_at, updated_at
-         FROM users WHERE id = ?`,
-        [result.insertId]
-      );
-
-      await connection.commit();
-      return users[0] as UserWithoutPassword;
-    } catch (error) {
-      await connection.rollback();
-      throw error;
-    } finally {
-      connection.release();
-    }
+      const { password: _, ...userWithoutPassword } = user;
+      return userWithoutPassword as UserWithoutPassword;
+    });
   }
 
-  async login(credential: string, password: string): Promise<{ token: string; user: UserWithoutPassword }> {
-    const [users] = await pool.query<UserRow[]>("SELECT * FROM users WHERE nim = ? OR email = ?", [credential, credential]);
-    if (users.length === 0) throw new AppError(ERROR_MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
+  async login(
+    credential: string,
+    password: string,
+  ): Promise<{ token: string; user: UserWithoutPassword }> {
+    const user = await prisma.user.findFirst({
+      where: {
+        OR: [{ nim: credential }, { email: credential }],
+      },
+    });
 
-    const user = users[0];
-    if (!(await comparePassword(password, user.password))) throw new AppError(ERROR_MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
+    if (!user) throw new AppError(ERROR_MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
+    if (!(await comparePassword(password, user.password)))
+      throw new AppError(ERROR_MESSAGES.AUTH.INVALID_CREDENTIALS, 401);
 
-    const token = generateToken({ id: user.id, nim: user.nim, name: user.name, email: user.email, role: user.role });
+    const token = generateToken({
+      id: user.id,
+      nim: user.nim,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    });
     const { password: _, ...userWithoutPassword } = user;
-    return { token, user: userWithoutPassword };
+    return { token, user: userWithoutPassword as UserWithoutPassword };
   }
 
   async getProfile(userId: number): Promise<UserWithoutPassword> {
-    const [users] = await pool.query<UserRow[]>(
-      `SELECT id, nim, name, major, faculty, batch_year, whatsapp, email, role, created_at, updated_at
-       FROM users WHERE id = ?`,
-      [userId]
-    );
-    if (users.length === 0) throw new AppError(ERROR_MESSAGES.USER.NOT_FOUND, 404);
-    return users[0] as UserWithoutPassword;
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) throw new AppError(ERROR_MESSAGES.USER.NOT_FOUND, 404);
+    const { password: _, ...userWithoutPassword } = user;
+    return userWithoutPassword as UserWithoutPassword;
   }
 
-  async updateProfile(userId: number, updateData: UpdateProfileDTO): Promise<UserWithoutPassword> {
-    const fields: string[] = [];
-    const values: (string | number)[] = [];
+  async updateProfile(
+    userId: number,
+    updateData: UpdateProfileDTO,
+  ): Promise<UserWithoutPassword> {
+    try {
+      const user = await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
 
-    for (const [key, value] of Object.entries(updateData)) {
-      if (value !== undefined) {
-        fields.push(`${key} = ?`);
-        values.push(value);
-      }
+      const { password: _, ...userWithoutPassword } = user;
+      return userWithoutPassword as UserWithoutPassword;
+    } catch (error: any) {
+      if (error.code === "P2025")
+        throw new AppError(ERROR_MESSAGES.USER.NOT_FOUND, 404);
+      throw error;
     }
-
-    if (fields.length === 0) throw new AppError("Tidak ada data yang diupdate", 400);
-    values.push(userId);
-
-    const [result] = await pool.query<ResultSetHeader>(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, values);
-    if (result.affectedRows === 0) throw new AppError(ERROR_MESSAGES.USER.NOT_FOUND, 404);
-
-    return this.getProfile(userId);
   }
 
-  async upgradeSeller(userId: number, whatsapp?: string): Promise<UserWithoutPassword> {
-    const [users] = await pool.query<UserRow[]>("SELECT role FROM users WHERE id = ?", [userId]);
-    if (users.length === 0) throw new AppError(ERROR_MESSAGES.USER.NOT_FOUND, 404);
-    if (users[0].role === "seller") throw new AppError(ERROR_MESSAGES.AUTH.ALREADY_SELLER, 403);
+  async upgradeSeller(
+    userId: number,
+    whatsapp?: string,
+  ): Promise<UserWithoutPassword> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true },
+    });
 
-    const fields = whatsapp ? "role = ?, whatsapp = ?" : "role = ?";
-    const values = whatsapp ? ["seller", whatsapp, userId] : ["seller", userId];
+    if (!user) throw new AppError(ERROR_MESSAGES.USER.NOT_FOUND, 404);
+    if (user.role === Role.seller)
+      throw new AppError(ERROR_MESSAGES.AUTH.ALREADY_SELLER, 403);
 
-    await pool.query(`UPDATE users SET ${fields} WHERE id = ?`, values);
-    return this.getProfile(userId);
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        role: Role.seller,
+        ...(whatsapp && { whatsapp }),
+      },
+    });
+
+    const { password: _, ...userWithoutPassword } = updatedUser;
+    return userWithoutPassword as UserWithoutPassword;
   }
 }

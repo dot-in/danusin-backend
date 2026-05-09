@@ -1,17 +1,11 @@
-import type { ResultSetHeader, RowDataPacket, PoolConnection } from "mysql2/promise";
-import { pool } from "../../core/config/database.config.js";
-import type { ImageRow } from "../../shared/types/database.types.js";
-import type { Image } from "../../shared/types/common.types.js";
+import { prisma } from "../../core/config/database.config.js";
 import { AppError } from "../../core/middlewares/error.middleware.js";
-
-interface SortOrderResult extends RowDataPacket {
-  next_order: number;
-}
+import { EntityType, Prisma } from "@prisma/client";
 
 interface CreateImageDTO {
   url: string;
   alt_text?: string;
-  entity_type: "product" | "user" | "store";
+  entity_type: EntityType;
   entity_id: number;
   is_primary?: boolean;
   sort_order?: number;
@@ -25,129 +19,158 @@ interface UpdateImageDTO {
 }
 
 export class ImageService {
-  private getDb(conn?: PoolConnection) {
-    return conn || pool;
+  private getClient(tx?: Prisma.TransactionClient) {
+    return tx || prisma;
   }
 
-  async getByEntity(entityType: "product" | "user" | "store", entityId: number, conn?: PoolConnection): Promise<Image[]> {
-    const [images] = await this.getDb(conn).query<ImageRow[]>(
-      "SELECT * FROM images WHERE entity_type = ? AND entity_id = ? ORDER BY is_primary DESC, sort_order ASC",
-      [entityType, entityId]
-    );
-    return images;
+  async getByEntity(entityType: EntityType, entityId: number, tx?: Prisma.TransactionClient) {
+    return await this.getClient(tx).image.findMany({
+      where: { entity_type: entityType, entity_id: entityId },
+      orderBy: [{ is_primary: "desc" }, { sort_order: "asc" }],
+    });
   }
 
-  async getById(imageId: number, conn?: PoolConnection): Promise<Image | null> {
-    const [images] = await this.getDb(conn).query<ImageRow[]>("SELECT * FROM images WHERE id = ?", [imageId]);
-    return images[0] || null;
+  async getById(imageId: number, tx?: Prisma.TransactionClient) {
+    return await this.getClient(tx).image.findUnique({
+      where: { id: imageId },
+    });
   }
 
-  async getPrimaryImage(entityType: "product" | "user" | "store", entityId: number, conn?: PoolConnection): Promise<Image | null> {
-    const [images] = await this.getDb(conn).query<ImageRow[]>(
-      "SELECT * FROM images WHERE entity_type = ? AND entity_id = ? AND is_primary = TRUE LIMIT 1",
-      [entityType, entityId]
-    );
-    return images[0] || null;
+  async getPrimaryImage(entityType: EntityType, entityId: number, tx?: Prisma.TransactionClient) {
+    return await this.getClient(tx).image.findFirst({
+      where: { entity_type: entityType, entity_id: entityId, is_primary: true },
+    });
   }
 
-  async getPrimaryImagesForEntities(entityType: "product" | "user" | "store", entityIds: number[], conn?: PoolConnection): Promise<Map<number, string>> {
+  async getPrimaryImagesForEntities(entityType: EntityType, entityIds: number[], tx?: Prisma.TransactionClient): Promise<Map<number, string>> {
     if (entityIds.length === 0) return new Map();
-    const placeholders = entityIds.map(() => "?").join(",");
-    const [images] = await this.getDb(conn).query<ImageRow[]>(
-      `SELECT entity_id, url FROM images WHERE entity_type = ? AND entity_id IN (${placeholders}) AND is_primary = TRUE`,
-      [entityType, ...entityIds]
-    );
+    const images = await this.getClient(tx).image.findMany({
+      where: {
+        entity_type: entityType,
+        entity_id: { in: entityIds },
+        is_primary: true,
+      },
+      select: { entity_id: true, url: true },
+    });
     const imageMap = new Map<number, string>();
-    images.forEach(img => imageMap.set(img.entity_id, img.url));
+    images.forEach((img) => imageMap.set(img.entity_id, img.url));
     return imageMap;
   }
 
-  async create(data: CreateImageDTO, conn?: PoolConnection): Promise<Image> {
-    const db = this.getDb(conn);
+  async create(data: CreateImageDTO, tx?: Prisma.TransactionClient) {
+    const client = this.getClient(tx);
     if (data.is_primary) {
-      await db.query("UPDATE images SET is_primary = FALSE WHERE entity_type = ? AND entity_id = ?", [data.entity_type, data.entity_id]);
+      await client.image.updateMany({
+        where: { entity_type: data.entity_type, entity_id: data.entity_id },
+        data: { is_primary: false },
+      });
     }
 
     let sortOrder = data.sort_order;
     if (sortOrder === undefined) {
-      const [result] = await db.query<SortOrderResult[]>(
-        "SELECT COALESCE(MAX(sort_order), -1) + 1 as next_order FROM images WHERE entity_type = ? AND entity_id = ?",
-        [data.entity_type, data.entity_id]
-      );
-      sortOrder = result[0].next_order;
+      const agg = await client.image.aggregate({
+        where: { entity_type: data.entity_type, entity_id: data.entity_id },
+        _max: { sort_order: true },
+      });
+      sortOrder = (agg._max.sort_order ?? -1) + 1;
     }
 
-    const [result] = await db.query<ResultSetHeader>(
-      "INSERT INTO images (url, alt_text, entity_type, entity_id, is_primary, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
-      [data.url, data.alt_text || null, data.entity_type, data.entity_id, data.is_primary || false, sortOrder]
-    );
-
-    const [images] = await db.query<ImageRow[]>("SELECT * FROM images WHERE id = ?", [result.insertId]);
-    return images[0];
+    return await client.image.create({
+      data: {
+        ...data,
+        sort_order: sortOrder,
+        is_primary: data.is_primary || false,
+      },
+    });
   }
 
-  async createMany(images: CreateImageDTO[], conn?: PoolConnection): Promise<Image[]> {
+  async createMany(images: CreateImageDTO[], tx?: Prisma.TransactionClient) {
     if (images.length === 0) return [];
-    const created: Image[] = [];
-    for (const imageData of images) created.push(await this.create(imageData, conn));
+    // Prisma createMany doesn't return created objects with IDs easily in all DBs,
+    // so we iterate or use a transaction if not already in one.
+    const created = [];
+    for (const imageData of images) {
+      created.push(await this.create(imageData, tx));
+    }
     return created;
   }
 
-  async update(imageId: number, data: UpdateImageDTO, conn?: PoolConnection): Promise<Image> {
-    const db = this.getDb(conn);
-    const [existing] = await db.query<ImageRow[]>("SELECT * FROM images WHERE id = ?", [imageId]);
-    if (existing.length === 0) throw new AppError("Image tidak ditemukan", 404);
+  async update(imageId: number, data: UpdateImageDTO, tx?: Prisma.TransactionClient) {
+    const client = this.getClient(tx);
+    const existing = await client.image.findUnique({ where: { id: imageId } });
+    if (!existing) throw new AppError("Image tidak ditemukan", 404);
 
     if (data.is_primary) {
-      await db.query("UPDATE images SET is_primary = FALSE WHERE entity_type = ? AND entity_id = ? AND id != ?", [existing[0].entity_type, existing[0].entity_id, imageId]);
+      await client.image.updateMany({
+        where: {
+          entity_type: existing.entity_type,
+          entity_id: existing.entity_id,
+          id: { not: imageId },
+        },
+        data: { is_primary: false },
+      });
     }
 
-    const fields: string[] = [];
-    const values: any[] = [];
-    Object.entries(data).forEach(([key, value]) => {
-      if (value !== undefined) { fields.push(`${key} = ?`); values.push(value); }
+    return await client.image.update({
+      where: { id: imageId },
+      data,
+    });
+  }
+
+  async setPrimary(imageId: number, tx?: Prisma.TransactionClient) {
+    const client = this.getClient(tx);
+    const existing = await client.image.findUnique({ where: { id: imageId } });
+    if (!existing) throw new AppError("Image tidak ditemukan", 404);
+
+    await client.image.updateMany({
+      where: { entity_type: existing.entity_type, entity_id: existing.entity_id },
+      data: { is_primary: false },
     });
 
-    if (fields.length > 0) {
-      values.push(imageId);
-      await db.query(`UPDATE images SET ${fields.join(", ")} WHERE id = ?`, values);
-    }
-
-    const [updated] = await db.query<ImageRow[]>("SELECT * FROM images WHERE id = ?", [imageId]);
-    return updated[0];
+    return await client.image.update({
+      where: { id: imageId },
+      data: { is_primary: true },
+    });
   }
 
-  async setPrimary(imageId: number, conn?: PoolConnection): Promise<Image> {
-    const db = this.getDb(conn);
-    const [existing] = await db.query<ImageRow[]>("SELECT * FROM images WHERE id = ?", [imageId]);
-    if (existing.length === 0) throw new AppError("Image tidak ditemukan", 404);
+  async delete(imageId: number, tx?: Prisma.TransactionClient) {
+    const client = this.getClient(tx);
+    const existing = await client.image.findUnique({ where: { id: imageId } });
+    if (!existing) throw new AppError("Image tidak ditemukan", 404);
 
-    await db.query("UPDATE images SET is_primary = FALSE WHERE entity_type = ? AND entity_id = ?", [existing[0].entity_type, existing[0].entity_id]);
-    await db.query("UPDATE images SET is_primary = TRUE WHERE id = ?", [imageId]);
+    await client.image.delete({ where: { id: imageId } });
 
-    const [updated] = await db.query<ImageRow[]>("SELECT * FROM images WHERE id = ?", [imageId]);
-    return updated[0];
-  }
-
-  async delete(imageId: number, conn?: PoolConnection): Promise<void> {
-    const db = this.getDb(conn);
-    const [existing] = await db.query<ImageRow[]>("SELECT * FROM images WHERE id = ?", [imageId]);
-    if (existing.length === 0) throw new AppError("Image tidak ditemukan", 404);
-
-    await db.query("DELETE FROM images WHERE id = ?", [imageId]);
-    if (existing[0].is_primary) {
-      await db.query("UPDATE images SET is_primary = TRUE WHERE entity_type = ? AND entity_id = ? ORDER BY sort_order ASC LIMIT 1", [existing[0].entity_type, existing[0].entity_id]);
+    if (existing.is_primary) {
+      const nextPrimary = await client.image.findFirst({
+        where: { entity_type: existing.entity_type, entity_id: existing.entity_id },
+        orderBy: { sort_order: "asc" },
+      });
+      if (nextPrimary) {
+        await client.image.update({
+          where: { id: nextPrimary.id },
+          data: { is_primary: true },
+        });
+      }
     }
   }
 
-  async deleteByEntity(entityType: "product" | "user" | "store", entityId: number, conn?: PoolConnection): Promise<void> {
-    await this.getDb(conn).query("DELETE FROM images WHERE entity_type = ? AND entity_id = ?", [entityType, entityId]);
+  async deleteByEntity(entityType: EntityType, entityId: number, tx?: Prisma.TransactionClient) {
+    await this.getClient(tx).image.deleteMany({
+      where: { entity_type: entityType, entity_id: entityId },
+    });
   }
 
-  async reorder(entityType: "product" | "user" | "store", entityId: number, imageIds: number[], conn?: PoolConnection): Promise<void> {
-    const db = this.getDb(conn);
+  async reorder(entityType: EntityType, entityId: number, imageIds: number[], tx?: Prisma.TransactionClient) {
+    const client = this.getClient(tx);
     for (let i = 0; i < imageIds.length; i++) {
-      await db.query("UPDATE images SET sort_order = ? WHERE id = ? AND entity_type = ? AND entity_id = ?", [i, imageIds[i], entityType, entityId]);
+      await client.image.update({
+        where: {
+          id: imageIds[i],
+          entity_type: entityType,
+          entity_id: entityId,
+        },
+        data: { sort_order: i },
+      });
     }
   }
 }

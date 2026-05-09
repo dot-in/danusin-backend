@@ -20,7 +20,7 @@ export const isPOOpen = (openDate: Date | string, closeDate: Date | string): boo
   return now >= new Date(openDate) && now <= new Date(closeDate);
 };
 
-export const getAvailableDays = (startDate: string, endDate: string): string[] => {
+export const getAvailableDays = (startDate: Date | string, endDate: Date | string): string[] => {
   const days = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
   const order = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
   const available = new Set<string>();

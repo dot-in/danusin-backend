@@ -1,275 +1,219 @@
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
-import { pool } from "../../core/config/database.config.js";
+import { prisma } from "../../core/config/database.config.js";
 import { AppError } from "../../core/middlewares/error.middleware.js";
-import type { ProductRow } from "../../shared/types/database.types.js";
-import type { Product, Image } from "../../shared/types/common.types.js";
 import { ERROR_MESSAGES } from "../../shared/constants/message.constant.js";
 import { ImageService } from "../images/image.service.js";
 import { getAvailableDays } from "../../shared/utils/date.util.js";
+import { EntityType } from "@prisma/client";
 
 const imageService = new ImageService();
 
-interface CountResult extends RowDataPacket {
-  total: number;
-}
-type QueryParamValue = string | number | boolean | null;
-
-interface CreateProductDTO {
-  name: string;
-  description: string;
-  price: number;
-  stock?: number;
-  po_open_date: string;
-  po_close_date: string;
-  delivery_date?: string;
-  images?: string[];
-}
-
-interface UpdateProductDTO {
-  name?: string;
-  description?: string;
-  price?: number;
-  stock?: number;
-  po_open_date?: string;
-  po_close_date?: string;
-  delivery_date?: string | null;
-  images?: string[];
-  add_images?: string[];
-  remove_image_ids?: number[];
-}
-
-interface GetProductsQuery {
-  q?: string;
-  min_price?: number;
-  max_price?: number;
-  open_only?: boolean;
-  seller_id?: number;
-  page?: number;
-  limit?: number;
-}
+import {
+  CreateProductDTO,
+  UpdateProductDTO,
+  GetProductsQuery,
+  PaginatedProductsResponse,
+} from "./product.model.js";
 
 export class ProductService {
-  async getAll(query: GetProductsQuery): Promise<{
-    products: Product[];
-    total: number;
-    meta: { page: number; limit: number; total: number; totalPages: number };
-  }> {
+  async getAll(query: GetProductsQuery) {
     const { q, min_price, max_price, open_only, seller_id, page = 1, limit = 20 } = query;
-    const whereConditions: string[] = [];
-    const queryParams: QueryParamValue[] = [];
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      is_active: true,
+    };
 
     if (q) {
-      whereConditions.push("(p.name LIKE ? OR p.description LIKE ?)");
-      queryParams.push(`%${q}%`, `%${q}%`);
+      where.OR = [
+        { name: { contains: q } },
+        { description: { contains: q } },
+      ];
     }
-    if (min_price !== undefined) {
-      whereConditions.push("p.price >= ?");
-      queryParams.push(min_price);
-    }
-    if (max_price !== undefined) {
-      whereConditions.push("p.price <= ?");
-      queryParams.push(max_price);
-    }
+    if (min_price !== undefined) where.price = { ...where.price, gte: min_price };
+    if (max_price !== undefined) where.price = { ...where.price, lte: max_price };
     if (open_only) {
-      whereConditions.push("p.po_open_date <= CURDATE() AND p.po_close_date >= CURDATE()");
+      const today = new Date();
+      where.po_open_date = { lte: today };
+      where.po_close_date = { gte: today };
     }
-    if (seller_id) {
-      whereConditions.push("p.seller_id = ?");
-      queryParams.push(seller_id);
-    }
+    if (seller_id) where.seller_id = seller_id;
 
-    const whereClause = whereConditions.length > 0 ? `WHERE ${whereConditions.join(" AND ")}` : "";
+    const [products, total] = await Promise.all([
+      prisma.product.findMany({
+        where,
+        include: {
+          seller: {
+            select: { name: true, faculty: true, whatsapp: true },
+          },
+        },
+        orderBy: { created_at: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.product.count({ where }),
+    ]);
 
-    const [countResult] = await pool.query<CountResult[]>(
-      `SELECT COUNT(*) as total FROM products p ${whereClause}`,
-      queryParams
-    );
-    const total = countResult[0].total;
-    const totalPages = Math.ceil(total / limit);
-    const offset = (page - 1) * limit;
+    const productIds = products.map((p) => p.id);
+    const imageMap = await imageService.getPrimaryImagesForEntities(EntityType.product, productIds);
 
-    const [products] = await pool.query<(ProductRow & { primary_image: string | null; seller_name: string; seller_faculty: string; seller_whatsapp: string })[]>(
-      `SELECT p.*, 
-        u.name as seller_name, u.faculty as seller_faculty, u.whatsapp as seller_whatsapp,
-        i.url as primary_image
-       FROM products p
-       LEFT JOIN users u ON p.seller_id = u.id
-       LEFT JOIN images i ON i.entity_type = 'product' AND i.entity_id = p.id AND i.is_primary = TRUE
-       ${whereClause}
-       ORDER BY p.created_at DESC
-       LIMIT ? OFFSET ?`,
-      [...queryParams, limit, offset]
-    );
-
-    const formattedProducts: Product[] = products.map((p) => ({
+    const formattedProducts = products.map((p) => ({
       ...p,
+      seller_name: p.seller.name,
+      seller_faculty: p.seller.faculty,
+      seller_whatsapp: p.seller.whatsapp,
+      primary_image: imageMap.get(p.id) || null,
       available_days: getAvailableDays(p.po_open_date, p.po_close_date),
     }));
 
     return {
       products: formattedProducts,
       total,
-      meta: { page, limit, total, totalPages },
+      meta: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
 
-  async getById(productId: number): Promise<Product> {
-    const [products] = await pool.query<(ProductRow & { seller_name: string; seller_faculty: string; seller_whatsapp: string })[]>(
-      `SELECT p.*, u.name as seller_name, u.faculty as seller_faculty, u.whatsapp as seller_whatsapp
-       FROM products p
-       LEFT JOIN users u ON p.seller_id = u.id
-       WHERE p.id = ?`,
-      [productId]
-    );
+  async getById(productId: number) {
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        seller: {
+          select: { name: true, faculty: true, whatsapp: true },
+        },
+      },
+    });
 
-    if (products.length === 0) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
+    if (!product) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
 
-    const images = await imageService.getByEntity("product", productId);
+    const images = await imageService.getByEntity(EntityType.product, productId);
     const primaryImage = images.find((img) => img.is_primary) || images[0];
 
     return {
-      ...products[0],
+      ...product,
+      seller_name: product.seller.name,
+      seller_faculty: product.seller.faculty,
+      seller_whatsapp: product.seller.whatsapp,
       images,
       primary_image: primaryImage?.url || null,
-      available_days: getAvailableDays(products[0].po_open_date, products[0].po_close_date),
+      available_days: getAvailableDays(product.po_open_date, product.po_close_date),
     };
   }
 
-  async getMySeller(sellerId: number): Promise<Product[]> {
-    const [products] = await pool.query<(ProductRow & { primary_image: string | null })[]>(
-      `SELECT p.*, i.url as primary_image
-       FROM products p
-       LEFT JOIN images i ON i.entity_type = 'product' AND i.entity_id = p.id AND i.is_primary = TRUE
-       WHERE p.seller_id = ? 
-       ORDER BY p.created_at DESC`,
-      [sellerId]
-    );
+  async getMySeller(sellerId: number) {
+    const products = await prisma.product.findMany({
+      where: { seller_id: sellerId },
+      orderBy: { created_at: "desc" },
+    });
+
+    const productIds = products.map((p) => p.id);
+    const imageMap = await imageService.getPrimaryImagesForEntities(EntityType.product, productIds);
 
     return products.map((p) => ({
       ...p,
+      primary_image: imageMap.get(p.id) || null,
       available_days: getAvailableDays(p.po_open_date, p.po_close_date),
     }));
   }
 
-  async create(sellerId: number, data: CreateProductDTO): Promise<Product> {
-    const conn = await pool.getConnection();
-    try {
-      await conn.beginTransaction();
-
-      const [result] = await conn.query<ResultSetHeader>(
-        `INSERT INTO products (seller_id, name, description, price, stock, po_open_date, po_close_date, delivery_date)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [sellerId, data.name, data.description, data.price, data.stock || 0, data.po_open_date, data.po_close_date, data.delivery_date || null]
-      );
-
-      const productId = result.insertId;
+  async create(sellerId: number, data: CreateProductDTO) {
+    return await prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: {
+          seller_id: sellerId,
+          name: data.name,
+          description: data.description,
+          price: data.price,
+          stock: data.stock || 0,
+          po_open_date: new Date(data.po_open_date),
+          po_close_date: new Date(data.po_close_date),
+          delivery_date: data.delivery_date ? new Date(data.delivery_date) : null,
+          pickup_locations: [], // Required in schema but DTO doesn't have it yet
+          available_days: [], // Required in schema
+        },
+      });
 
       if (data.images?.length) {
         const imageData = data.images.map((url, index) => ({
           url,
-          entity_type: "product" as const,
-          entity_id: productId,
+          entity_type: EntityType.product,
+          entity_id: product.id,
           is_primary: index === 0,
           sort_order: index,
         }));
-        await imageService.createMany(imageData, conn);
+        await imageService.createMany(imageData, tx);
       }
 
-      await conn.commit();
-      return this.getById(productId);
-    } catch (error) {
-      await conn.rollback();
-      throw error;
-    } finally {
-      conn.release();
-    }
+      return this.getById(product.id);
+    });
   }
 
-  async update(productId: number, sellerId: number, data: UpdateProductDTO): Promise<Product> {
-    const conn = await pool.getConnection();
-    try {
-      await conn.beginTransaction();
+  async update(productId: number, sellerId: number, data: UpdateProductDTO) {
+    return await prisma.$transaction(async (tx) => {
+      const product = await tx.product.findUnique({
+        where: { id: productId },
+      });
 
-      const [products] = await conn.query<ProductRow[]>("SELECT seller_id FROM products WHERE id = ? FOR UPDATE", [productId]);
-      if (products.length === 0) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
-      if (products[0].seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
+      if (!product) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
+      if (product.seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
 
       const { images, add_images, remove_image_ids, ...productData } = data;
-      const fields: string[] = [];
-      const values: QueryParamValue[] = [];
 
-      for (const [key, value] of Object.entries(productData)) {
-        if (value !== undefined) {
-          fields.push(`${key} = ?`);
-          values.push(value);
-        }
-      }
-
-      if (fields.length > 0) {
-        values.push(productId);
-        await conn.query(`UPDATE products SET ${fields.join(", ")} WHERE id = ?`, values);
-      }
+      await tx.product.update({
+        where: { id: productId },
+        data: {
+          ...productData,
+          po_open_date: productData.po_open_date ? new Date(productData.po_open_date) : undefined,
+          po_close_date: productData.po_close_date ? new Date(productData.po_close_date) : undefined,
+          delivery_date: productData.delivery_date === null ? null : (productData.delivery_date ? new Date(productData.delivery_date) : undefined),
+        },
+      });
 
       if (images !== undefined) {
-        await imageService.deleteByEntity("product", productId, conn);
+        await imageService.deleteByEntity(EntityType.product, productId, tx);
         if (images.length > 0) {
           const imageData = images.map((url, index) => ({
             url,
-            entity_type: "product" as const,
+            entity_type: EntityType.product,
             entity_id: productId,
             is_primary: index === 0,
             sort_order: index,
           }));
-          await imageService.createMany(imageData, conn);
+          await imageService.createMany(imageData, tx);
         }
       }
 
       if (add_images?.length) {
-        const existingImages = await imageService.getByEntity("product", productId, conn);
+        const existingImages = await imageService.getByEntity(EntityType.product, productId, tx);
         const imageData = add_images.map((url, index) => ({
           url,
-          entity_type: "product" as const,
+          entity_type: EntityType.product,
           entity_id: productId,
           is_primary: existingImages.length === 0 && index === 0,
           sort_order: existingImages.length + index,
         }));
-        await imageService.createMany(imageData, conn);
+        await imageService.createMany(imageData, tx);
       }
 
       if (remove_image_ids?.length) {
         for (const imageId of remove_image_ids) {
-          await imageService.delete(imageId, conn);
+          await imageService.delete(imageId, tx);
         }
       }
 
-      await conn.commit();
       return this.getById(productId);
-    } catch (error) {
-      await conn.rollback();
-      throw error;
-    } finally {
-      conn.release();
-    }
+    });
   }
 
-  async delete(productId: number, sellerId: number): Promise<void> {
-    const conn = await pool.getConnection();
-    try {
-      await conn.beginTransaction();
+  async delete(productId: number, sellerId: number) {
+    await prisma.$transaction(async (tx) => {
+      const product = await tx.product.findUnique({
+        where: { id: productId },
+      });
 
-      const [products] = await conn.query<ProductRow[]>("SELECT seller_id FROM products WHERE id = ? FOR UPDATE", [productId]);
-      if (products.length === 0) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
-      if (products[0].seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
+      if (!product) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
+      if (product.seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
 
-      await imageService.deleteByEntity("product", productId, conn);
-      await conn.query("DELETE FROM products WHERE id = ?", [productId]);
-
-      await conn.commit();
-    } catch (error) {
-      await conn.rollback();
-      throw error;
-    } finally {
-      conn.release();
-    }
+      await imageService.deleteByEntity(EntityType.product, productId, tx);
+      await tx.product.delete({ where: { id: productId } });
+    });
   }
 }
