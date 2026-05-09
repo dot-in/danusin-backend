@@ -13,7 +13,8 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
-    "db:migrate": "tsx src/core/database/migrations/run.ts"
+    "db:migrate": "tsx src/core/database/migrations/run.ts",
+    "db:seed": "tsx src/core/database/migrations/seed.ts"
   },
   "keywords": [
     "express",
@@ -25,6 +26,8 @@
   "license": "ISC",
   "description": "Danus.in API",
   "dependencies": {
+    "@prisma/adapter-mariadb": "^7.8.0",
+    "@prisma/client": "^7.8.0",
     "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
@@ -32,6 +35,7 @@
     "express-fileupload": "^1.5.2",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mariadb": "^3.5.2",
     "morgan": "^1.10.1",
     "mysql2": "^3.15.3",
     "pino": "^9.5.0",
@@ -48,6 +52,7 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/morgan": "^1.9.10",
     "@types/node": "^22.10.0",
+    "prisma": "^7.8.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
   }

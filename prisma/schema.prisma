@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum Role {
+  buyer
+  seller
+}
+
+model User {
+  id            Int            @id @default(autoincrement())
+  nim           String         @unique
+  name          String
+  major         String
+  faculty       String
+  batch_year    Int
+  whatsapp      String
+  email         String         @unique
+  password      String
+  role          Role           @default(buyer)
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
+  store         Store?
+  products      Product[]
+  buyerOrders   Order[]        @relation("buyerOrders")
+  sellerOrders  Order[]        @relation("sellerOrders")
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Store {
+  id               Int      @id @default(autoincrement())
+  user_id          Int      @unique
+  user             User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  store_name       String
+  description      String?  @db.Text
+  whatsapp         String
+  pickup_locations Json
+  available_days   Json
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@map("stores")
+}
+
+model Product {
+  id               Int      @id @default(autoincrement())
+  seller_id        Int
+  seller           User     @relation(fields: [seller_id], references: [id], onDelete: Cascade)
+  name             String
+  description      String?  @db.Text
+  price            Int
+  stock            Int      @default(0)
+  pickup_locations Json
+  available_days   Json
+  po_open_date     DateTime @db.Date
+  po_close_date    DateTime @db.Date
+  delivery_date    DateTime? @db.Date
+  is_active        Boolean  @default(true)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  orders           Order[]
+
+  @@map("products")
+}
+
+enum EntityType {
+  product
+  user
+  store
+}
+
+model Image {
+  id          Int        @id @default(autoincrement())
+  url         String     @db.VarChar(500)
+  alt_text    String?
+  entity_type EntityType @default(product)
+  entity_id   Int
+  is_primary  Boolean    @default(false)
+  sort_order  Int        @default(0)
+  created_at  DateTime   @default(now())
+
+  @@map("images")
+}
+
+enum OrderStatus {
+  Menunggu_Konfirmasi @map("Menunggu Konfirmasi")
+  Diproses
+  Selesai
+  Dibatalkan
+}
+
+model Order {
+  id              Int         @id @default(autoincrement())
+  buyer_id        Int
+  buyer           User        @relation("buyerOrders", fields: [buyer_id], references: [id], onDelete: Cascade)
+  product_id      Int
+  product         Product     @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  seller_id       Int
+  seller          User        @relation("sellerOrders", fields: [seller_id], references: [id], onDelete: Cascade)
+  quantity        Int
+  total_price     Int
+  pickup_location String?
+  pickup_day      String?
+  notes           String?     @db.Text
+  status          OrderStatus @default(Menunggu_Konfirmasi)
+  created_at      DateTime    @default(now())
+  updated_at      DateTime    @updatedAt
+
+  @@map("orders")
+}
+
+enum NotificationType {
+  order
+  system
+  promo
+}
+
+model Notification {
+  id         Int              @id @default(autoincrement())
+  user_id    Int
+  user       User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  title      String
+  message    String           @db.Text
+  type       NotificationType @default(system)
+  is_read    Boolean          @default(false)
+  created_at DateTime         @default(now())
+
+  @@map("notifications")
+}

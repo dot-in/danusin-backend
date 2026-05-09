@@ -14,6 +14,7 @@ const envSchema = z.object({
   DATABASE_USER: z.string(),
   DATABASE_PASSWORD: z.string().default(""),
   DATABASE_NAME: z.string(),
+  DATABASE_URL: z.string().optional(),
   JWT_SECRET: z.string().min(32, "JWT_SECRET must be at least 32 characters"),
   JWT_EXPIRES_IN: z.string().default("7d"),
   UPLOAD_DIR: z.string().default("./uploads"),
@@ -54,6 +55,7 @@ export const config = {
     user: env.DATABASE_USER,
     password: env.DATABASE_PASSWORD,
     name: env.DATABASE_NAME,
+    url: env.DATABASE_URL,
   },
   jwt: {
     secret: env.JWT_SECRET,

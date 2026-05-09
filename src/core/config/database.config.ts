@@ -1,27 +1,42 @@
-import mysql from "mysql2/promise";
+import { PrismaClient } from "@prisma/client";
+import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import { logger } from "./logger.config.js";
 import { config } from "./env.config.js";
-import { logger } from "./logger.config";
 
-export const pool = mysql.createPool({
+const adapter = new PrismaMariaDb({
   host: config.database.host,
   port: config.database.port,
   user: config.database.user,
   password: config.database.password,
   database: config.database.name,
-  waitForConnections: true,
   connectionLimit: 10,
-  queueLimit: 0,
-  maxIdle: 10,
-  idleTimeout: 60000,
-  enableKeepAlive: true,
-  keepAliveInitialDelay: 0,
-  timezone: "+00:00",
+});
+
+export const prisma = new PrismaClient({
+  // @ts-ignore
+  adapter,
+  log: [
+    { emit: "event", level: "query" },
+    { emit: "event", level: "error" },
+    { emit: "event", level: "info" },
+    { emit: "event", level: "warn" },
+  ],
+});
+
+// @ts-ignore
+prisma.$on("query", (e: any) => {
+  logger.debug({ query: e.query, params: e.params, duration: e.duration }, "Prisma Query");
+});
+
+// @ts-ignore
+prisma.$on("error", (e: any) => {
+  logger.error({ error: e.message }, "Prisma Error");
 });
 
 export const testConnection = async () => {
   try {
-    const connection = await pool.getConnection();
-    connection.release();
+    await prisma.$connect();
+    logger.info("Database connected successfully via Prisma (MariaDB Adapter - Direct Config)");
     return true;
   } catch (error) {
     logger.error({ error }, "Database connection failed");
@@ -31,9 +46,9 @@ export const testConnection = async () => {
 
 export const closePool = async (): Promise<void> => {
   try {
-    await pool.end();
-    logger.info("Database connection pool closed");
+    await prisma.$disconnect();
+    logger.info("Database connection closed");
   } catch (error) {
-    logger.error({ error }, "Error closing database connection pool");
+    logger.error({ error }, "Error closing database connection");
   }
 };
