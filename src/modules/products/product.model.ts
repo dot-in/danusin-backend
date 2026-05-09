@@ -1,5 +1,3 @@
-import { Product } from "../../shared/types/common.types.js";
-
 export interface CreateProductDTO {
   name: string;
   description: string;

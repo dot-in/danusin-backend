@@ -11,12 +11,19 @@ import {
   CreateProductDTO,
   UpdateProductDTO,
   GetProductsQuery,
-  PaginatedProductsResponse,
 } from "./product.model.js";
 
 export class ProductService {
   async getAll(query: GetProductsQuery) {
-    const { q, min_price, max_price, open_only, seller_id, page = 1, limit = 20 } = query;
+    const {
+      q,
+      min_price,
+      max_price,
+      open_only,
+      seller_id,
+      page = 1,
+      limit = 20,
+    } = query;
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -24,13 +31,12 @@ export class ProductService {
     };
 
     if (q) {
-      where.OR = [
-        { name: { contains: q } },
-        { description: { contains: q } },
-      ];
+      where.OR = [{ name: { contains: q } }, { description: { contains: q } }];
     }
-    if (min_price !== undefined) where.price = { ...where.price, gte: min_price };
-    if (max_price !== undefined) where.price = { ...where.price, lte: max_price };
+    if (min_price !== undefined)
+      where.price = { ...where.price, gte: min_price };
+    if (max_price !== undefined)
+      where.price = { ...where.price, lte: max_price };
     if (open_only) {
       const today = new Date();
       where.po_open_date = { lte: today };
@@ -54,7 +60,10 @@ export class ProductService {
     ]);
 
     const productIds = products.map((p) => p.id);
-    const imageMap = await imageService.getPrimaryImagesForEntities(EntityType.product, productIds);
+    const imageMap = await imageService.getPrimaryImagesForEntities(
+      EntityType.product,
+      productIds,
+    );
 
     const formattedProducts = products.map((p) => ({
       ...p,
@@ -84,7 +93,10 @@ export class ProductService {
 
     if (!product) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
 
-    const images = await imageService.getByEntity(EntityType.product, productId);
+    const images = await imageService.getByEntity(
+      EntityType.product,
+      productId,
+    );
     const primaryImage = images.find((img) => img.is_primary) || images[0];
 
     return {
@@ -94,7 +106,10 @@ export class ProductService {
       seller_whatsapp: product.seller.whatsapp,
       images,
       primary_image: primaryImage?.url || null,
-      available_days: getAvailableDays(product.po_open_date, product.po_close_date),
+      available_days: getAvailableDays(
+        product.po_open_date,
+        product.po_close_date,
+      ),
     };
   }
 
@@ -105,7 +120,10 @@ export class ProductService {
     });
 
     const productIds = products.map((p) => p.id);
-    const imageMap = await imageService.getPrimaryImagesForEntities(EntityType.product, productIds);
+    const imageMap = await imageService.getPrimaryImagesForEntities(
+      EntityType.product,
+      productIds,
+    );
 
     return products.map((p) => ({
       ...p,
@@ -125,7 +143,9 @@ export class ProductService {
           stock: data.stock || 0,
           po_open_date: new Date(data.po_open_date),
           po_close_date: new Date(data.po_close_date),
-          delivery_date: data.delivery_date ? new Date(data.delivery_date) : null,
+          delivery_date: data.delivery_date
+            ? new Date(data.delivery_date)
+            : null,
           pickup_locations: [], // Required in schema but DTO doesn't have it yet
           available_days: [], // Required in schema
         },
@@ -153,7 +173,8 @@ export class ProductService {
       });
 
       if (!product) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
-      if (product.seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
+      if (product.seller_id !== sellerId)
+        throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
 
       const { images, add_images, remove_image_ids, ...productData } = data;
 
@@ -161,9 +182,18 @@ export class ProductService {
         where: { id: productId },
         data: {
           ...productData,
-          po_open_date: productData.po_open_date ? new Date(productData.po_open_date) : undefined,
-          po_close_date: productData.po_close_date ? new Date(productData.po_close_date) : undefined,
-          delivery_date: productData.delivery_date === null ? null : (productData.delivery_date ? new Date(productData.delivery_date) : undefined),
+          po_open_date: productData.po_open_date
+            ? new Date(productData.po_open_date)
+            : undefined,
+          po_close_date: productData.po_close_date
+            ? new Date(productData.po_close_date)
+            : undefined,
+          delivery_date:
+            productData.delivery_date === null
+              ? null
+              : productData.delivery_date
+                ? new Date(productData.delivery_date)
+                : undefined,
         },
       });
 
@@ -182,7 +212,11 @@ export class ProductService {
       }
 
       if (add_images?.length) {
-        const existingImages = await imageService.getByEntity(EntityType.product, productId, tx);
+        const existingImages = await imageService.getByEntity(
+          EntityType.product,
+          productId,
+          tx,
+        );
         const imageData = add_images.map((url, index) => ({
           url,
           entity_type: EntityType.product,
@@ -210,7 +244,8 @@ export class ProductService {
       });
 
       if (!product) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
-      if (product.seller_id !== sellerId) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
+      if (product.seller_id !== sellerId)
+        throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
 
       await imageService.deleteByEntity(EntityType.product, productId, tx);
       await tx.product.delete({ where: { id: productId } });

@@ -14,7 +14,10 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "db:migrate": "tsx src/core/database/migrations/run.ts",
-    "db:seed": "tsx src/core/database/migrations/seed.ts"
+    "db:seed": "prisma db seed"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
   },
   "keywords": [
     "express",
