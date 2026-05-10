@@ -71,7 +71,10 @@ export class UsersController {
     try {
       if (!req.user) throw new AppError("Unauthorized", 401);
       const { currentPassword, newPassword } = req.body;
-      const result = await this.usersService.changePassword(req.user.id, currentPassword, newPassword);
+      const result = await this.usersService.changePassword(req.user.id, {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
       successResponse(res, 200, result.message, null);
     } catch (error) {
       next(error);
