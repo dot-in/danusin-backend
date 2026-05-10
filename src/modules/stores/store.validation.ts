@@ -6,7 +6,7 @@ const days = z.enum(["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Ming
 export const createStoreSchema = z.object({
   body: z.object({
     store_name: z.string().min(3),
-    description: z.string().min(10).optional(),
+    description: z.string().optional(),
     whatsapp: z.string().regex(phoneRegex),
   }),
 });
@@ -14,7 +14,7 @@ export const createStoreSchema = z.object({
 export const updateStoreSchema = z.object({
   body: z.object({
     store_name: z.string().min(3).optional(),
-    description: z.string().min(10).optional(),
+    description: z.string().optional(),
     whatsapp: z.string().regex(phoneRegex).optional(),
     pickup_locations: z.array(z.string().min(1)).optional(),
     available_days: z.array(days).optional(),

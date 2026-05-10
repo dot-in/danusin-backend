@@ -2,6 +2,7 @@ import { prisma } from "../../core/config/database.config.js";
 import { AppError } from "../../core/middlewares/error.middleware.js";
 import { ERROR_MESSAGES } from "../../shared/constants/message.constant.js";
 import { hashPassword, comparePassword } from "../../shared/utils/bcrypt.util.js";
+import { generateToken } from "../../shared/utils/jwt.util.js";
 import { Role, EntityType } from "@prisma/client";
 import { UpdateUserDTO, ChangePasswordDTO } from "./user.model.js";
 
@@ -272,12 +273,20 @@ export class UserService {
         },
       });
 
-      await tx.user.update({
+      const user = await tx.user.update({
         where: { id: userId },
         data: { role: Role.seller },
       });
 
-      return { id: store.id, message: "Toko berhasil dibuat" };
+      const token = generateToken({
+        id: user.id,
+        nim: user.nim,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      });
+
+      return { id: store.id, message: "Toko berhasil dibuat", token };
     });
   }
 

@@ -95,7 +95,7 @@ export class UsersController {
     try {
       if (!req.user) throw new AppError("Unauthorized", 401);
       const result = await this.usersService.createStore(req.user.id, req.body);
-      successResponse(res, 201, result.message, { id: result.id });
+      successResponse(res, 201, result.message, { id: result.id, token: result.token });
     } catch (error) {
       next(error);
     }
