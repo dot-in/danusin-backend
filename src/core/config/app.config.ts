@@ -15,6 +15,7 @@ import uploadRoutes from "../../modules/upload/upload.routes.js";
 import dashboardRoutes from "../../modules/dashboard/dashboard.routes.js";
 import imageRoutes from "../../modules/images/image.routes.js";
 import storesRoutes from "../../modules/stores/store.routes.js";
+import reviewsRoutes from "../../modules/reviews/review.routes.js";
 
 export const createApp = (): Application => {
   const app = express();
@@ -78,6 +79,7 @@ export const createApp = (): Application => {
   app.use(`${apiPrefix}/dashboard`, dashboardRoutes);
   app.use(`${apiPrefix}/images`, imageRoutes);
   app.use(`${apiPrefix}/stores`, storesRoutes);
+  app.use(`${apiPrefix}/reviews`, reviewsRoutes);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

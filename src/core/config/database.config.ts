@@ -3,25 +3,36 @@ import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { logger } from "./logger.config.js";
 import { config } from "./env.config.js";
 
+// Prevent multiple instances of Prisma Client in development
+const globalForPrisma = global as unknown as { prisma: PrismaClient };
+
 const adapter = new PrismaMariaDb({
   host: config.database.host,
   port: config.database.port,
   user: config.database.user,
   password: config.database.password,
   database: config.database.name,
-  connectionLimit: 10,
+  connectionLimit: 20,
+  // @ts-ignore - Required for MySQL 8+ / Recent MariaDB authentication
+  allowPublicKeyRetrieval: true,
+  // @ts-ignore
+  connectTimeout: 10000,
 });
 
-export const prisma = new PrismaClient({
-  // @ts-ignore
-  adapter,
-  log: [
-    { emit: "event", level: "query" },
-    { emit: "event", level: "error" },
-    { emit: "event", level: "info" },
-    { emit: "event", level: "warn" },
-  ],
-});
+export const prisma =
+  globalForPrisma.prisma ||
+  new PrismaClient({
+    // @ts-ignore
+    adapter,
+    log: [
+      { emit: "event", level: "query" },
+      { emit: "event", level: "error" },
+      { emit: "event", level: "info" },
+      { emit: "event", level: "warn" },
+    ],
+  });
+
+if (config.server.nodeEnv !== "production") globalForPrisma.prisma = prisma;
 
 // @ts-ignore
 prisma.$on("query", (e: any) => {

@@ -3,7 +3,7 @@ import { AppError } from "../../core/middlewares/error.middleware.js";
 import { ERROR_MESSAGES } from "../../shared/constants/message.constant.js";
 import { ImageService } from "../images/image.service.js";
 import { getAvailableDays } from "../../shared/utils/date.util.js";
-import { EntityType } from "@prisma/client";
+import { EntityType, Prisma } from "@prisma/client";
 
 const imageService = new ImageService();
 
@@ -14,7 +14,12 @@ import {
 } from "./product.model.js";
 
 export class ProductService {
-  async getAll(query: GetProductsQuery) {
+  private getClient(tx?: Prisma.TransactionClient) {
+    return tx || prisma;
+  }
+
+  async getAll(query: GetProductsQuery, tx?: Prisma.TransactionClient) {
+    const client = this.getClient(tx);
     const {
       q,
       min_price,
@@ -45,7 +50,7 @@ export class ProductService {
     if (seller_id) where.seller_id = seller_id;
 
     const [products, total] = await Promise.all([
-      prisma.product.findMany({
+      client.product.findMany({
         where,
         include: {
           seller: {
@@ -56,13 +61,14 @@ export class ProductService {
         skip,
         take: limit,
       }),
-      prisma.product.count({ where }),
+      client.product.count({ where }),
     ]);
 
     const productIds = products.map((p) => p.id);
     const imageMap = await imageService.getPrimaryImagesForEntities(
       EntityType.product,
       productIds,
+      tx,
     );
 
     const formattedProducts = products.map((p) => ({
@@ -81,8 +87,9 @@ export class ProductService {
     };
   }
 
-  async getById(productId: number) {
-    const product = await prisma.product.findUnique({
+  async getById(productId: number, tx?: Prisma.TransactionClient) {
+    const client = this.getClient(tx);
+    const product = await client.product.findUnique({
       where: { id: productId },
       include: {
         seller: {
@@ -96,6 +103,7 @@ export class ProductService {
     const images = await imageService.getByEntity(
       EntityType.product,
       productId,
+      tx,
     );
     const primaryImage = images.find((img) => img.is_primary) || images[0];
 
@@ -113,8 +121,9 @@ export class ProductService {
     };
   }
 
-  async getMySeller(sellerId: number) {
-    const products = await prisma.product.findMany({
+  async getMySeller(sellerId: number, tx?: Prisma.TransactionClient) {
+    const client = this.getClient(tx);
+    const products = await client.product.findMany({
       where: { seller_id: sellerId },
       orderBy: { created_at: "desc" },
     });
@@ -123,6 +132,7 @@ export class ProductService {
     const imageMap = await imageService.getPrimaryImagesForEntities(
       EntityType.product,
       productIds,
+      tx,
     );
 
     return products.map((p) => ({
@@ -162,7 +172,7 @@ export class ProductService {
         await imageService.createMany(imageData, tx);
       }
 
-      return this.getById(product.id);
+      return this.getById(product.id, tx);
     });
   }
 
@@ -233,7 +243,7 @@ export class ProductService {
         }
       }
 
-      return this.getById(productId);
+      return this.getById(productId, tx);
     });
   }
 

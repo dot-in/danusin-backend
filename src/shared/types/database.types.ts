@@ -49,7 +49,7 @@ export interface OrderRow extends RowDataPacket {
   product_id: number;
   quantity: number;
   total_price: number;
-  status: "Menunggu Konfirmasi" | "Diproses" | "Selesai" | "Dibatalkan";
+  status: "MENUNGGU_KONFIRMASI" | "DIPROSES" | "SELESAI" | "DIBATALKAN";
   created_at: string;
   updated_at: string;
 }
@@ -81,7 +81,7 @@ export interface UserOrderRow extends RowDataPacket {
   product_id: number;
   quantity: number;
   total_price: number;
-  status: "Menunggu Konfirmasi" | "Diproses" | "Selesai" | "Dibatalkan";
+  status: "MENUNGGU_KONFIRMASI" | "DIPROSES" | "SELESAI" | "DIBATALKAN";
   created_at: string;
   updated_at: string;
   product_name?: string;

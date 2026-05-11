@@ -50,7 +50,7 @@ export interface Order {
   product_id: number;
   quantity: number;
   total_price: number;
-  status: "Menunggu Konfirmasi" | "Diproses" | "Selesai" | "Dibatalkan";
+  status: "MENUNGGU_KONFIRMASI" | "DIPROSES" | "SELESAI" | "DIBATALKAN";
   created_at: Date;
   updated_at: Date;
 }

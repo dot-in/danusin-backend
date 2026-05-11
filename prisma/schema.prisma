@@ -29,6 +29,7 @@ model User {
   buyerOrders   Order[]        @relation("buyerOrders")
   sellerOrders  Order[]        @relation("sellerOrders")
   notifications Notification[]
+  reviews       Review[]
 
   @@map("users")
 }
@@ -66,6 +67,7 @@ model Product {
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
   orders           Order[]
+  reviews          Review[]
 
   @@map("products")
 }
@@ -74,6 +76,7 @@ enum EntityType {
   product
   user
   store
+  review
 }
 
 model Image {
@@ -90,10 +93,10 @@ model Image {
 }
 
 enum OrderStatus {
-  Menunggu_Konfirmasi @map("Menunggu Konfirmasi")
-  Diproses
-  Selesai
-  Dibatalkan
+  MENUNGGU_KONFIRMASI @map("Menunggu Konfirmasi")
+  DIPROSES           @map("Diproses")
+  SELESAI            @map("Selesai")
+  DIBATALKAN         @map("Dibatalkan")
 }
 
 model Order {
@@ -109,9 +112,10 @@ model Order {
   pickup_location String?
   pickup_day      String?
   notes           String?     @db.Text
-  status          OrderStatus @default(Menunggu_Konfirmasi)
+  status          OrderStatus @default(MENUNGGU_KONFIRMASI)
   created_at      DateTime    @default(now())
   updated_at      DateTime    @updatedAt
+  review          Review?
 
   @@map("orders")
 }
@@ -131,6 +135,22 @@ model Notification {
   type       NotificationType @default(system)
   is_read    Boolean          @default(false)
   created_at DateTime         @default(now())
-
+  
   @@map("notifications")
+}
+
+model Review {
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  product_id Int
+  product    Product  @relation(fields: [product_id], references: [id], onDelete: Cascade)
+  order_id   Int      @unique
+  order      Order    @relation(fields: [order_id], references: [id], onDelete: Cascade)
+  rating     Int
+  comment    String?  @db.Text
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("reviews")
 }
