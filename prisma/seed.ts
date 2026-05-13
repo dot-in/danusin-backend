@@ -8,7 +8,7 @@ const MAJORS = ["Informatika", "Sistem Informasi", "Teknik Elektro", "Teknik Mes
 const FACULTIES = ["Teknik", "Hukum", "Ekonomi dan Bisnis", "Kedokteran", "MIPA", "FISIP"];
 const CAMPUSES = ["Kampus A", "Kampus B", "Kampus C", "Asrama", "Fakultas Teknik", "Perpustakaan Pusat"];
 const DAYS = ["Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu"];
-const STATUSES: OrderStatus[] = [OrderStatus.Menunggu_Konfirmasi, OrderStatus.Diproses, OrderStatus.Selesai, OrderStatus.Dibatalkan];
+const STATUSES: OrderStatus[] = [OrderStatus.MENUNGGU_KONFIRMASI, OrderStatus.DIPROSES, OrderStatus.SELESAI, OrderStatus.DIBATALKAN];
 
 const getRandom = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
 const getRandomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
@@ -74,7 +74,7 @@ async function seed() {
     // 4. Seed Products (30 products)
     const productIds: number[] = [];
     const productNames = ["Mochi", "Risol Mayo", "Nasi Kulit", "Dimsum", "Brownies", "Es Kopi", "Sandwich", "Cireng", "Donat", "Bakso Goreng"];
-    
+
     for (let i = 1; i <= 30; i++) {
       const sellerId = getRandom(sellerIds);
       const today = new Date();
@@ -148,14 +148,14 @@ async function seed() {
     for (let i = 1; i <= 50; i++) {
       const buyerId = getRandom(buyerIds);
       const productId = getRandom(productIds);
-      
+
       const product = await prisma.product.findUnique({
         where: { id: productId },
         select: { seller_id: true, price: true }
       });
-      
+
       if (!product) continue;
-      
+
       const quantity = getRandomInt(1, 5);
 
       await prisma.order.create({
