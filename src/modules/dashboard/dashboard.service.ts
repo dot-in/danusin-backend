@@ -1,5 +1,6 @@
 import { prisma } from "../../core/config/database.config.js";
 import { OrderStatus, EntityType } from "@prisma/client";
+import { ORDER_STATUS } from "../../shared/constants/status.constant.js";
 
 export class DashboardService {
   async getSellerSummary(sellerId: number) {
@@ -16,22 +17,22 @@ export class DashboardService {
       totalOrdersCount,
     ] = await Promise.all([
       prisma.order.aggregate({
-        where: { seller_id: sellerId, status: "Selesai" as OrderStatus },
+        where: { seller_id: sellerId, status: ORDER_STATUS.COMPLETED as OrderStatus },
         _sum: { total_price: true },
       }),
       prisma.order.aggregate({
         where: {
           seller_id: sellerId,
-          status: "Selesai" as OrderStatus,
+          status: ORDER_STATUS.COMPLETED as OrderStatus,
           created_at: { gte: firstDayOfMonth },
         },
         _sum: { total_price: true },
       }),
       prisma.order.count({
-        where: { seller_id: sellerId, status: "Menunggu_Konfirmasi" as OrderStatus },
+        where: { seller_id: sellerId, status: ORDER_STATUS.PENDING as OrderStatus },
       }),
       prisma.order.count({
-        where: { seller_id: sellerId, status: "Selesai" as OrderStatus },
+        where: { seller_id: sellerId, status: ORDER_STATUS.COMPLETED as OrderStatus },
       }),
       prisma.product.count({
         where: { seller_id: sellerId },
@@ -57,7 +58,7 @@ export class DashboardService {
       by: ["created_at"],
       where: {
         seller_id: sellerId,
-        status: "Selesai" as OrderStatus,
+        status: ORDER_STATUS.COMPLETED as OrderStatus,
         created_at: { gte: sixMonthsAgo },
       },
       _sum: { total_price: true },
@@ -108,7 +109,7 @@ export class DashboardService {
     ]);
 
     const totalSpent = await prisma.order.aggregate({
-      where: { buyer_id: buyerId, status: { not: "Dibatalkan" as OrderStatus } },
+      where: { buyer_id: buyerId, status: { not: ORDER_STATUS.CANCELLED as OrderStatus } },
       _sum: { total_price: true },
     });
 
