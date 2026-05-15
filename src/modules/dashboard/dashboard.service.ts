@@ -52,8 +52,6 @@ export class DashboardService {
       take: 5,
     });
 
-    // For monthly sales chart, we might need a raw query or manually group if we want specific formatting
-    // But for now let's use a simpler aggregation and format it
     const monthlySalesRaw = await prisma.order.groupBy({
       by: ["created_at"],
       where: {
@@ -64,7 +62,6 @@ export class DashboardService {
       _sum: { total_price: true },
     });
 
-    // Formatting monthly sales to match previous output (brief month name)
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const salesMap = new Map<string, number>();
     monthlySalesRaw.forEach((item) => {
@@ -99,7 +96,7 @@ export class DashboardService {
       prisma.order.aggregate({
         where: { buyer_id: buyerId },
         _count: { id: true },
-        _sum: { total_price: true }, // This is total spent, but original SQL had status != 'Dibatalkan'
+        _sum: { total_price: true },
       }),
       prisma.order.groupBy({
         by: ["status"],

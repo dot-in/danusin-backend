@@ -68,7 +68,7 @@ export class UserService {
       where: { id: userId },
       include: {
         notifications: {
-          take: 0, // Just checking existence/count if needed, but here we just need user info
+          take: 0,
         },
       },
     });
@@ -218,7 +218,6 @@ export class UserService {
       prisma.order.count({ where }),
     ]);
 
-    // Manually fetch images because of polymorphic relation
     const productIds = orders.map((o) => o.product_id);
     const images = await prisma.image.findMany({
       where: {
@@ -268,8 +267,8 @@ export class UserService {
           store_name: data.store_name,
           description: data.description || null,
           whatsapp: data.whatsapp,
-          pickup_locations: [], // Default empty as it's required in schema but not passed here
-          available_days: [], // Default empty
+          pickup_locations: [],
+          available_days: [],
         },
       });
 

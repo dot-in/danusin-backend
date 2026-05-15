@@ -156,8 +156,8 @@ export class ProductService {
           delivery_date: data.delivery_date
             ? new Date(data.delivery_date)
             : null,
-          pickup_locations: [], // Required in schema but DTO doesn't have it yet
-          available_days: [], // Required in schema
+          pickup_locations: [],
+          available_days: [],
         },
       });
 

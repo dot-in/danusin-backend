@@ -21,7 +21,7 @@ export const createApp = (): Application => {
   const app = express();
 
   app.use(helmet({
-    contentSecurityPolicy: false, // Disabled for development, customize for production
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
   }));
@@ -53,7 +53,6 @@ export const createApp = (): Application => {
 
   const apiPrefix = `/api/${config.server.apiVersion}`;
 
-  // Serve static files from the uploads directory
   app.use("/uploads", express.static(path.resolve(process.cwd(), config.upload.dir)));
 
   app.use(`${apiPrefix}/auth`, authRoutes);
