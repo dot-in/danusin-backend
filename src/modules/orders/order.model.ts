@@ -3,6 +3,7 @@ import { OrderStatus } from "@prisma/client";
 export interface CreateOrderDTO {
   product_id: number;
   quantity: number;
+  payment_method: "COD" | "DIGITAL";
 }
 
 export interface UpdateOrderStatusDTO {

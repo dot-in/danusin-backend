@@ -66,4 +66,14 @@ export class OrdersController {
       next(error);
     }
   };
+
+  handleWebhook = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const paymentService = new (await import("./payment.service.js")).PaymentService();
+      const result = await paymentService.handleWebhook(req.body);
+      successResponse(res, 200, "Webhook handled successfully", result);
+    } catch (error) {
+      next(error);
+    }
+  };
 }

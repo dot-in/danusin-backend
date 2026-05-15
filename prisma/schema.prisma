@@ -93,10 +93,16 @@ model Image {
 }
 
 enum OrderStatus {
+  PENDING_PAYMENT     @map("Menunggu Pembayaran")
   MENUNGGU_KONFIRMASI @map("Menunggu Konfirmasi")
   DIPROSES           @map("Diproses")
   SELESAI            @map("Selesai")
   DIBATALKAN         @map("Dibatalkan")
+}
+
+enum PaymentMethod {
+  COD
+  DIGITAL
 }
 
 model Order {
@@ -112,6 +118,7 @@ model Order {
   pickup_location String?
   pickup_day      String?
   notes           String?     @db.Text
+  payment_method  PaymentMethod @default(COD)
   status          OrderStatus @default(MENUNGGU_KONFIRMASI)
   created_at      DateTime    @default(now())
   updated_at      DateTime    @updatedAt

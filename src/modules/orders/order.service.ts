@@ -9,6 +9,9 @@ import { isPOOpen } from "../../shared/utils/date.util.js";
 import { OrderStatus, EntityType } from "@prisma/client";
 
 import { CreateOrderDTO } from "./order.model.js";
+import { PaymentService } from "./payment.service.js";
+
+const paymentService = new PaymentService();
 
 export class OrderService {
   async create(buyerId: number, orderData: CreateOrderDTO) {
@@ -45,20 +48,28 @@ export class OrderService {
           seller_id: product.seller_id,
           quantity: orderData.quantity,
           total_price: totalPrice,
-          status: ORDER_STATUS.PENDING as OrderStatus,
+          payment_method: orderData.payment_method,
+          status: orderData.payment_method === "DIGITAL" 
+            ? ORDER_STATUS.PENDING_PAYMENT as OrderStatus 
+            : ORDER_STATUS.PENDING as OrderStatus,
         },
       });
+
+      let snapToken: string | undefined;
+      if (orderData.payment_method === "DIGITAL") {
+        snapToken = await paymentService.createTransaction(order.id, totalPrice);
+      }
 
       await tx.notification.create({
         data: {
           user_id: product.seller_id,
           title: "Pesanan Baru",
-          message: `Pesanan baru untuk produk "${product.name}"`,
+          message: `Pesanan baru untuk produk "${product.name}"${orderData.payment_method === "COD" ? " (COD)" : ""}`,
           type: "order",
         },
       });
 
-      return order;
+      return { ...order, snap_token: snapToken };
     });
   }
 

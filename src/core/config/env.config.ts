@@ -23,6 +23,12 @@ const envSchema = z.object({
   LOG_LEVEL: z
     .enum(["fatal", "error", "warn", "info", "debug", "trace"])
     .default("info"),
+  MIDTRANS_SERVER_KEY: z.string(),
+  MIDTRANS_CLIENT_KEY: z.string(),
+  MIDTRANS_IS_PRODUCTION: z
+    .string()
+    .transform((val) => val === "true")
+    .default("false"),
 });
 
 const parseEnv = () => {
@@ -68,5 +74,10 @@ export const config = {
   },
   logging: {
     level: env.LOG_LEVEL,
+  },
+  midtrans: {
+    serverKey: env.MIDTRANS_SERVER_KEY,
+    clientKey: env.MIDTRANS_CLIENT_KEY,
+    isProduction: env.MIDTRANS_IS_PRODUCTION,
   },
 } as const;

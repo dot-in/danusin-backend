@@ -20,5 +20,6 @@ router.get("/seller/incoming", authenticate, authorize("seller"), ordersControll
 router.post("/:id/cancel", authenticate, ordersController.cancelOrder);
 router.get("/:id", authenticate, validate(getOrderSchema), ordersController.getById);
 router.patch("/:id/status", authenticate, authorize("seller"), validate(updateOrderStatusSchema), ordersController.updateStatus);
+router.post("/payments/webhook", ordersController.handleWebhook);
 
 export default router;

@@ -7,6 +7,7 @@ export const createOrderSchema = z.object({
   body: z.object({
     product_id: z.number().int().positive(),
     quantity: z.number().int().positive().max(1000),
+    payment_method: z.enum(["COD", "DIGITAL"]),
   }),
 });
 
