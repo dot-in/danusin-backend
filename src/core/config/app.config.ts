@@ -21,8 +21,9 @@ export const createApp = (): Application => {
   const app = express();
 
   app.use(helmet({
-    contentSecurityPolicy: config.server.isProduction,
-    crossOriginEmbedderPolicy: config.server.isProduction,
+    contentSecurityPolicy: false, // Disabled for development, customize for production
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
   }));
 
   app.use(cors({
@@ -52,23 +53,8 @@ export const createApp = (): Application => {
 
   const apiPrefix = `/api/${config.server.apiVersion}`;
 
-  app.get("/uploads/:filename", (req, res, next) => {
-    const { filename } = req.params;
-    const uuidFileRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.[a-zA-Z0-9]{1,8}$/i;
-    
-    if (!uuidFileRegex.test(filename)) {
-      return res.status(400).json({ status: "error", message: "Invalid filename" });
-    }
-
-    res.sendFile(path.resolve(config.upload.dir, filename), (err) => {
-      if (err) {
-        if ((err as any).code === "ENOENT") return res.status(404).json({ status: "error", message: "File not found" });
-        next(err);
-      }
-    });
-  });
-
-  app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+  // Serve static files from the uploads directory
+  app.use("/uploads", express.static(path.resolve(process.cwd(), config.upload.dir)));
 
   app.use(`${apiPrefix}/auth`, authRoutes);
   app.use(`${apiPrefix}/users`, usersRoutes);
