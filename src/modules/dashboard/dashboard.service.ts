@@ -3,21 +3,34 @@ import { OrderStatus, EntityType } from "@prisma/client";
 import { ORDER_STATUS } from "../../shared/constants/status.constant.js";
 
 export class DashboardService {
-  async getSellerSummary(sellerId: number) {
+  async getSellerSummary(sellerId: number, period: string = "30") {
     const today = new Date();
+    let startDate: Date | undefined;
+
+    if (period !== "all") {
+      startDate = new Date();
+      startDate.setDate(today.getDate() - parseInt(period));
+    }
+
     const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const sixMonthsAgo = new Date(today.getFullYear(), today.getMonth() - 5, 1);
+
+    const revenueWhere = {
+      seller_id: sellerId,
+      status: ORDER_STATUS.COMPLETED as OrderStatus,
+      ...(startDate && { created_at: { gte: startDate } }),
+    };
 
     const [
-      totalRevenue,
-      monthlyRevenue,
+      totalRevenueData,
+      monthlyRevenueData,
       pendingOrdersCount,
       completedOrdersCount,
       totalProductsCount,
       totalOrdersCount,
+      products,
     ] = await Promise.all([
       prisma.order.aggregate({
-        where: { seller_id: sellerId, status: ORDER_STATUS.COMPLETED as OrderStatus },
+        where: revenueWhere,
         _sum: { total_price: true },
       }),
       prisma.order.aggregate({
@@ -29,16 +42,42 @@ export class DashboardService {
         _sum: { total_price: true },
       }),
       prisma.order.count({
-        where: { seller_id: sellerId, status: ORDER_STATUS.PENDING as OrderStatus },
+        where: {
+          seller_id: sellerId,
+          status: ORDER_STATUS.PENDING as OrderStatus,
+        },
       }),
       prisma.order.count({
-        where: { seller_id: sellerId, status: ORDER_STATUS.COMPLETED as OrderStatus },
+        where: {
+          seller_id: sellerId,
+          status: ORDER_STATUS.COMPLETED as OrderStatus,
+        },
       }),
       prisma.product.count({
         where: { seller_id: sellerId },
       }),
       prisma.order.count({
+        where: {
+          seller_id: sellerId,
+          ...(startDate && { created_at: { gte: startDate } }),
+        },
+      }),
+      prisma.product.findMany({
         where: { seller_id: sellerId },
+        include: {
+          orders: {
+            where: {
+              status: ORDER_STATUS.COMPLETED as OrderStatus,
+              created_at: {
+                gte: new Date(
+                  today.getFullYear(),
+                  today.getMonth() - 1,
+                  today.getDate(),
+                ),
+              }, // last 30 days avg
+            },
+          },
+        },
       }),
     ]);
 
@@ -54,31 +93,53 @@ export class DashboardService {
 
     const monthlySalesRaw = await prisma.order.groupBy({
       by: ["created_at"],
-      where: {
-        seller_id: sellerId,
-        status: ORDER_STATUS.COMPLETED as OrderStatus,
-        created_at: { gte: sixMonthsAgo },
-      },
+      where: revenueWhere,
       _sum: { total_price: true },
     });
 
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    // Formatting chart based on period (if 1 or 3 days, maybe hours, but grouped by day is fine for all)
     const salesMap = new Map<string, number>();
+    const formatStr =
+      period === "all" || parseInt(period) > 7 ? "MM-DD" : "MM-DD";
+
     monthlySalesRaw.forEach((item) => {
-      const m = monthNames[item.created_at.getMonth()];
-      salesMap.set(m, (salesMap.get(m) || 0) + (item._sum.total_price || 0));
+      const d = `${item.created_at.getMonth() + 1}/${item.created_at.getDate()}`;
+      salesMap.set(d, (salesMap.get(d) || 0) + (item._sum.total_price || 0));
     });
 
-    const monthlySales = Array.from(salesMap.entries()).map(([month, revenue]) => ({ month, revenue }));
+    const monthlySales = Array.from(salesMap.entries()).map(
+      ([date, revenue]) => ({ month: date, revenue }),
+    );
+
+    const needsRestock = products
+      .filter((p) => p.stock < 5)
+      .map((p) => ({ id: p.id, name: p.name, stock: p.stock }));
+
+    // Low performance: high stock, 0 sales in last 30 days
+    const reduceStock = products
+      .filter((p) => p.stock > 10 && p.orders.length === 0)
+      .map((p) => ({ id: p.id, name: p.name, stock: p.stock }));
+
+    const insights = {
+      needsRestock,
+      reduceStock,
+      suggestion:
+        needsRestock.length > 0
+          ? "Segera tambah stok untuk produk yang menipis."
+          : reduceStock.length > 0
+            ? "Buat promo untuk produk yang kurang laku."
+            : "Performa toko Anda baik, pertahankan!",
+    };
 
     return {
-      total_revenue: totalRevenue._sum.total_price || 0,
-      monthly_revenue: monthlyRevenue._sum.total_price || 0,
+      total_revenue: totalRevenueData._sum.total_price || 0,
+      monthly_revenue: monthlyRevenueData._sum.total_price || 0,
       pending_orders_count: pendingOrdersCount,
       completed_orders_count: completedOrdersCount,
       total_products_count: totalProductsCount,
       total_orders_count: totalOrdersCount,
       monthly_sales: monthlySales,
+      insights,
       recent_orders: recentOrders.map((o) => ({
         id: o.id,
         quantity: o.quantity,
@@ -106,7 +167,10 @@ export class DashboardService {
     ]);
 
     const totalSpent = await prisma.order.aggregate({
-      where: { buyer_id: buyerId, status: { not: ORDER_STATUS.CANCELLED as OrderStatus } },
+      where: {
+        buyer_id: buyerId,
+        status: { not: ORDER_STATUS.CANCELLED as OrderStatus },
+      },
       _sum: { total_price: true },
     });
 
@@ -132,7 +196,10 @@ export class DashboardService {
     return {
       total_orders_count: summary._count.id,
       total_spent: totalSpent._sum.total_price || 0,
-      orders_by_status: ordersByStatusRaw.map((o) => ({ status: o.status, count: o._count.id })),
+      orders_by_status: ordersByStatusRaw.map((o) => ({
+        status: o.status,
+        count: o._count.id,
+      })),
       recent_orders: recentOrders.map((o) => ({
         id: o.id,
         quantity: o.quantity,
@@ -140,7 +207,8 @@ export class DashboardService {
         status: o.status,
         created_at: o.created_at,
         product_name: o.product.name,
-        product_image: images.find((img) => img.entity_id === o.product_id)?.url || null,
+        product_image:
+          images.find((img) => img.entity_id === o.product_id)?.url || null,
         seller_name: o.seller.name,
       })),
     };
