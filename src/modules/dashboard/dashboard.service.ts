@@ -99,8 +99,6 @@ export class DashboardService {
 
     // Formatting chart based on period (if 1 or 3 days, maybe hours, but grouped by day is fine for all)
     const salesMap = new Map<string, number>();
-    const formatStr =
-      period === "all" || parseInt(period) > 7 ? "MM-DD" : "MM-DD";
 
     monthlySalesRaw.forEach((item) => {
       const d = `${item.created_at.getMonth() + 1}/${item.created_at.getDate()}`;

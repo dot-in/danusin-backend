@@ -28,7 +28,7 @@ const envSchema = z.object({
   MIDTRANS_IS_PRODUCTION: z
     .string()
     .transform((val) => val === "true")
-    .default("false"),
+    .default(false),
 });
 
 const parseEnv = () => {
