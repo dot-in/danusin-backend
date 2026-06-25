@@ -23,6 +23,10 @@
       "SuccessResponse": {
         "type": "object",
         "properties": {
+          "status": {
+            "type": "boolean",
+            "example": true
+          },
           "message": {
             "type": "string"
           },
@@ -51,6 +55,10 @@
       "ErrorResponse": {
         "type": "object",
         "properties": {
+          "status": {
+            "type": "boolean",
+            "example": false
+          },
           "message": {
             "type": "string"
           },
