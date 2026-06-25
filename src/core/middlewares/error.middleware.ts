@@ -16,13 +16,14 @@ export class AppError extends Error {
 
 export const errorHandler = (err: Error | AppError, req: Request, res: Response, _next: NextFunction): void => {
   if (err instanceof AppError) {
-    res.status(err.statusCode).json({ message: err.message });
+    res.status(err.statusCode).json({ status: false, message: err.message });
     return;
   }
 
   logger.error({ err, url: req.url, method: req.method }, "Unhandled error");
 
   res.status(500).json({
+    status: false,
     message: "Terjadi kesalahan pada server",
     ...(config.server.isDevelopment && {
       error: err.message,
@@ -33,6 +34,7 @@ export const errorHandler = (err: Error | AppError, req: Request, res: Response,
 
 export const notFoundHandler = (req: Request, res: Response, _next: NextFunction): void => {
   res.status(404).json({
+    status: false,
     message: "Endpoint tidak ditemukan",
     path: req.url,
   });
