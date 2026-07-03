@@ -30,7 +30,7 @@ export class NotificationsController {
   markAsRead = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new AppError("Unauthorized", 401);
-      await this.notificationService.markAsRead(Number.parseInt(req.params.id), req.user.id);
+      await this.notificationService.markAsRead(Number.parseInt(req.params.id as string), req.user.id);
       successResponse(res, 200, SUCCESS_MESSAGES.NOTIFICATION.MARKED_READ);
     } catch (error) {
       next(error);

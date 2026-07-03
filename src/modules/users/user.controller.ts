@@ -8,7 +8,7 @@ export class UsersController {
 
   getPublicProfile = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const profile = await this.usersService.getPublicProfile(Number.parseInt(req.params.id));
+      const profile = await this.usersService.getPublicProfile(Number.parseInt(req.params.id as string));
       successResponse(res, 200, "Profil publik berhasil diambil", profile);
     } catch (error) {
       next(error);

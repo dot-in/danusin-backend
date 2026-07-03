@@ -40,7 +40,7 @@ export class OrdersController {
   getById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new AppError("Unauthorized", 401);
-      const order = await this.orderService.getById(Number.parseInt(req.params.id), req.user.id, req.user.role as "buyer" | "seller");
+      const order = await this.orderService.getById(Number.parseInt(req.params.id as string), req.user.id, req.user.role as "buyer" | "seller");
       successResponse(res, 200, "Detail pesanan berhasil diambil", order);
     } catch (error) {
       next(error);
@@ -50,7 +50,7 @@ export class OrdersController {
   updateStatus = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new AppError("Unauthorized", 401);
-      const order = await this.orderService.updateStatus(Number.parseInt(req.params.id), req.user.id, req.body.status);
+      const order = await this.orderService.updateStatus(Number.parseInt(req.params.id as string), req.user.id, req.body.status);
       successResponse(res, 200, SUCCESS_MESSAGES.ORDER.STATUS_UPDATED, { order });
     } catch (error) {
       next(error);
@@ -60,7 +60,7 @@ export class OrdersController {
   cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new AppError("Unauthorized", 401);
-      const order = await this.orderService.cancelOrder(Number.parseInt(req.params.id), req.user.id);
+      const order = await this.orderService.cancelOrder(Number.parseInt(req.params.id as string), req.user.id);
       successResponse(res, 200, "Pesanan berhasil dibatalkan", { order });
     } catch (error) {
       next(error);

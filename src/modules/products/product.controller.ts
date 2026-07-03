@@ -33,7 +33,7 @@ export class ProductsController {
 
   getById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const product = await this.productService.getById(Number.parseInt(req.params.id));
+      const product = await this.productService.getById(Number.parseInt(req.params.id as string));
       successResponse(res, 200, "Detail produk berhasil diambil", product);
     } catch (error) {
       next(error);
@@ -63,7 +63,7 @@ export class ProductsController {
   update = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new AppError("Unauthorized", 401);
-      const product = await this.productService.update(Number.parseInt(req.params.id), req.user.id, req.body);
+      const product = await this.productService.update(Number.parseInt(req.params.id as string), req.user.id, req.body);
       successResponse(res, 200, SUCCESS_MESSAGES.PRODUCT.UPDATED, { product });
     } catch (error) {
       next(error);
@@ -73,7 +73,7 @@ export class ProductsController {
   delete = async (req: Request, res: Response, next: NextFunction) => {
     try {
       if (!req.user) throw new AppError("Unauthorized", 401);
-      await this.productService.delete(Number.parseInt(req.params.id), req.user.id);
+      await this.productService.delete(Number.parseInt(req.params.id as string), req.user.id);
       successResponse(res, 200, SUCCESS_MESSAGES.PRODUCT.DELETED);
     } catch (error) {
       next(error);

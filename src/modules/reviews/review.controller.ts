@@ -18,7 +18,7 @@ export class ReviewController {
 
   getProductReviews = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const productId = Number.parseInt(req.params.id);
+      const productId = Number.parseInt(req.params.id as string);
       const reviews = await this.reviewService.getByProductId(productId);
       const summary = await this.reviewService.getProductRatingSummary(productId);
       successResponse(res, 200, "Ulasan produk berhasil diambil", { reviews, summary });

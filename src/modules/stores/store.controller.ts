@@ -39,7 +39,7 @@ export class StoreController {
 
   getStoreById = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const store = await this.storeService.getStoreById(Number.parseInt(req.params.id));
+      const store = await this.storeService.getStoreById(Number.parseInt(req.params.id as string));
       successResponse(res, 200, "Data toko berhasil diambil", store);
     } catch (error) {
       next(error);
