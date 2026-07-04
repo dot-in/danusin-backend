@@ -89,7 +89,7 @@ export class UserService {
       nim: user.nim,
       name: user.name,
       email: this.maskEmail(user.email),
-      whatsapp: user.whatsapp ? this.maskPhone(user.whatsapp) : null,
+      whatsapp: user.whatsapp || null,
       major: user.major,
       faculty: user.faculty,
       batch_year: user.batch_year,
@@ -298,10 +298,5 @@ export class UserService {
   private maskEmail(email: string): string {
     const [local, domain] = email.split("@");
     return `${local.charAt(0)}${"*".repeat(local.length - 1)}@${domain}`;
-  }
-
-  private maskPhone(phone: string): string {
-    if (phone.length <= 6) return phone;
-    return `${phone.slice(0, 4)}${"*".repeat(phone.length - 6)}${phone.slice(-2)}`;
   }
 }

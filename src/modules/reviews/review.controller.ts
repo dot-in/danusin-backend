@@ -26,4 +26,15 @@ export class ReviewController {
       next(error);
     }
   };
+
+  delete = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      if (!req.user) throw new AppError("Unauthorized", 401);
+      const reviewId = Number.parseInt(req.params.id as string);
+      await this.reviewService.delete(req.user.id, reviewId);
+      successResponse(res, 200, "Ulasan berhasil dihapus");
+    } catch (error) {
+      next(error);
+    }
+  };
 }

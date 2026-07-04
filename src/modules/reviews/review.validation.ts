@@ -14,3 +14,9 @@ export const getProductReviewsSchema = z.object({
     id: z.string().regex(/^\d+$/).transform(Number),
   }),
 });
+
+export const deleteReviewSchema = z.object({
+  params: z.object({
+    id: z.string().regex(/^\d+$/).transform(Number),
+  }),
+});

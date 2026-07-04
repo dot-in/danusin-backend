@@ -179,7 +179,11 @@ export class OrderService {
       if (!order) throw new AppError(ERROR_MESSAGES.ORDER.NOT_FOUND, 404);
       if (order.buyer_id !== buyerId) throw new AppError(ERROR_MESSAGES.ORDER.NOT_AUTHORIZED, 403);
 
-      const allowedToCancel = [ORDER_STATUS.PENDING, ORDER_STATUS.PROCESSING];
+      const allowedToCancel = [
+        ORDER_STATUS.PENDING_PAYMENT,
+        ORDER_STATUS.PENDING,
+        ORDER_STATUS.PROCESSING,
+      ];
       if (!allowedToCancel.includes(order.status as any)) throw new AppError(ERROR_MESSAGES.ORDER.INVALID_STATUS_TRANSITION, 400);
 
       const updatedOrder = await tx.order.update({

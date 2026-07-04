@@ -97,4 +97,30 @@ export class ReviewService {
       totalReviews: aggregate._count.id,
     };
   }
+
+  async delete(userId: number, reviewId: number) {
+    const review = await prisma.review.findUnique({
+      where: { id: reviewId },
+      include: { product: true },
+    });
+
+    if (!review) throw new AppError("Ulasan tidak ditemukan", 404);
+
+    if (review.product.seller_id !== userId) {
+      throw new AppError("Anda tidak berwenang menghapus ulasan ini", 403);
+    }
+
+    await prisma.image.deleteMany({
+      where: {
+        entity_type: EntityType.review,
+        entity_id: reviewId,
+      },
+    });
+
+    await prisma.review.delete({
+      where: { id: reviewId },
+    });
+
+    return true;
+  }
 }

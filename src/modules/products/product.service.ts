@@ -26,6 +26,9 @@ export class ProductService {
       max_price,
       open_only,
       seller_id,
+      exclude_seller_id,
+      days,
+      locations,
       page = 1,
       limit = 20,
     } = query;
@@ -35,19 +38,58 @@ export class ProductService {
       is_active: true,
     };
 
+    const andConditions: any[] = [];
+
     if (q) {
-      where.OR = [{ name: { contains: q } }, { description: { contains: q } }];
+      andConditions.push({
+        OR: [{ name: { contains: q } }, { description: { contains: q } }],
+      });
     }
-    if (min_price !== undefined)
-      where.price = { ...where.price, gte: min_price };
-    if (max_price !== undefined)
-      where.price = { ...where.price, lte: max_price };
+    if (min_price !== undefined) {
+      andConditions.push({ price: { gte: min_price } });
+    }
+    if (max_price !== undefined) {
+      andConditions.push({ price: { lte: max_price } });
+    }
     if (open_only) {
       const today = new Date();
-      where.po_open_date = { lte: today };
-      where.po_close_date = { gte: today };
+      andConditions.push({
+        po_open_date: { lte: today },
+        po_close_date: { gte: today },
+      });
     }
-    if (seller_id) where.seller_id = seller_id;
+    if (seller_id) {
+      andConditions.push({ seller_id });
+    }
+    if (exclude_seller_id) {
+      andConditions.push({ seller_id: { not: exclude_seller_id } });
+    }
+
+    if (days && days.length > 0) {
+      andConditions.push({
+        OR: days.map((day) => ({
+          available_days: {
+            path: "$",
+            array_contains: day,
+          },
+        })),
+      });
+    }
+
+    if (locations && locations.length > 0) {
+      andConditions.push({
+        OR: locations.map((location) => ({
+          pickup_locations: {
+            path: "$",
+            array_contains: location,
+          },
+        })),
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
+    }
 
     const [products, total] = await Promise.all([
       client.product.findMany({
@@ -77,7 +119,8 @@ export class ProductService {
       seller_faculty: p.seller.faculty,
       seller_whatsapp: p.seller.whatsapp,
       primary_image: imageMap.get(p.id) || null,
-      available_days: getAvailableDays(p.po_open_date, p.po_close_date),
+      available_days: (p.available_days as string[])?.length ? (p.available_days as string[]) : getAvailableDays(p.po_open_date, p.po_close_date),
+      pickup_locations: p.pickup_locations as string[],
     }));
 
     return {
@@ -114,10 +157,11 @@ export class ProductService {
       seller_whatsapp: product.seller.whatsapp,
       images,
       primary_image: primaryImage?.url || null,
-      available_days: getAvailableDays(
+      available_days: (product.available_days as string[])?.length ? (product.available_days as string[]) : getAvailableDays(
         product.po_open_date,
         product.po_close_date,
       ),
+      pickup_locations: product.pickup_locations as string[],
     };
   }
 
@@ -138,12 +182,19 @@ export class ProductService {
     return products.map((p) => ({
       ...p,
       primary_image: imageMap.get(p.id) || null,
-      available_days: getAvailableDays(p.po_open_date, p.po_close_date),
+      available_days: (p.available_days as string[])?.length ? (p.available_days as string[]) : getAvailableDays(p.po_open_date, p.po_close_date),
+      pickup_locations: p.pickup_locations as string[],
     }));
   }
 
   async create(sellerId: number, data: CreateProductDTO) {
     return await prisma.$transaction(async (tx) => {
+      const store = await tx.store.findUnique({
+        where: { user_id: sellerId },
+      });
+      const pickup_locations = data.pickup_locations || (store?.pickup_locations as string[]) || [];
+      const available_days = data.available_days || (store?.available_days as string[]) || [];
+
       const product = await tx.product.create({
         data: {
           seller_id: sellerId,
@@ -156,8 +207,8 @@ export class ProductService {
           delivery_date: data.delivery_date
             ? new Date(data.delivery_date)
             : null,
-          pickup_locations: [],
-          available_days: [],
+          pickup_locations,
+          available_days,
         },
       });
 
@@ -186,7 +237,7 @@ export class ProductService {
       if (product.seller_id !== sellerId)
         throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
 
-      const { images, add_images, remove_image_ids, ...productData } = data;
+      const { images, add_images, remove_image_ids, pickup_locations, available_days, ...productData } = data;
 
       await tx.product.update({
         where: { id: productId },
@@ -204,6 +255,8 @@ export class ProductService {
               : productData.delivery_date
                 ? new Date(productData.delivery_date)
                 : undefined,
+          ...(pickup_locations && { pickup_locations }),
+          ...(available_days && { available_days }),
         },
       });
 
@@ -260,5 +313,67 @@ export class ProductService {
       await imageService.deleteByEntity(EntityType.product, productId, tx);
       await tx.product.delete({ where: { id: productId } });
     });
+  }
+
+  async getProductStats(productId: number, sellerId: number) {
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        orders: {
+          include: {
+            buyer: { select: { name: true, faculty: true } }
+          }
+        },
+        reviews: {
+          include: {
+            user: { select: { name: true } }
+          },
+          orderBy: { created_at: "desc" }
+        }
+      }
+    });
+
+    if (!product) throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_FOUND, 404);
+    if (product.seller_id !== sellerId) {
+      throw new AppError(ERROR_MESSAGES.PRODUCT.NOT_OWNER, 403);
+    }
+
+    const completedOrders = product.orders.filter(o => o.status === "SELESAI");
+    
+    const totalOrdersCount = product.orders.length;
+    const totalSalesQuantity = completedOrders.reduce((sum, o) => sum + o.quantity, 0);
+    const totalRevenue = completedOrders.reduce((sum, o) => sum + Number(o.total_price), 0);
+
+    const totalRatings = product.reviews.reduce((sum, r) => sum + r.rating, 0);
+    const averageRating = product.reviews.length > 0 ? (totalRatings / product.reviews.length) : 0;
+
+    const images = await imageService.getByEntity(EntityType.product, productId);
+    const primaryImage = images.find((img) => img.is_primary) || images[0];
+
+    const formattedProduct = {
+      ...product,
+      images,
+      primary_image: primaryImage?.url || null,
+      available_days: (product.available_days as string[])?.length ? (product.available_days as string[]) : [],
+      pickup_locations: product.pickup_locations as string[],
+    };
+
+    return {
+      product: formattedProduct,
+      stats: {
+        total_orders: totalOrdersCount,
+        total_sales: totalSalesQuantity,
+        total_revenue: totalRevenue,
+        average_rating: Number(averageRating.toFixed(1)),
+        total_reviews: product.reviews.length
+      },
+      reviews: product.reviews.map(r => ({
+        id: r.id,
+        user_name: r.user.name,
+        rating: r.rating,
+        comment: r.comment,
+        created_at: r.created_at
+      }))
+    };
   }
 }

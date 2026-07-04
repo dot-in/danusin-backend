@@ -14,6 +14,8 @@ export const createProductSchema = z.object({
       po_open_date: z.string().regex(dateRegex),
       po_close_date: z.string().regex(dateRegex),
       delivery_date: z.string().regex(dateRegex).optional(),
+      pickup_locations: z.array(z.string()).optional(),
+      available_days: z.array(z.string()).optional(),
     })
     .refine((data) => new Date(data.po_close_date) > new Date(data.po_open_date), {
       message: "Tanggal tutup PO harus setelah tanggal buka",
@@ -42,6 +44,8 @@ export const updateProductSchema = z.object({
       po_open_date: z.string().regex(dateRegex).optional(),
       po_close_date: z.string().regex(dateRegex).optional(),
       delivery_date: z.string().regex(dateRegex).optional().nullable(),
+      pickup_locations: z.array(z.string()).optional(),
+      available_days: z.array(z.string()).optional(),
     })
     .refine((data) => Object.keys(data).length > 0, {
       message: "Minimal satu field harus diisi",
@@ -63,6 +67,7 @@ export const getProductsSchema = z.object({
     max_price: numericString.optional(),
     open_only: z.enum(["true", "false"]).optional(),
     seller_id: numericString.optional(),
+    exclude_seller_id: numericString.optional(),
     page: numericString.optional(),
     limit: numericString.optional(),
   }),

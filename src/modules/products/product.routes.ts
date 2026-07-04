@@ -18,6 +18,13 @@ const productsController = new ProductsController();
 
 router.get("/", validate(getProductsSchema), productsController.getAll);
 router.get("/me/mine", authenticate, productsController.getMine);
+router.get(
+  "/:id/stats",
+  authenticate,
+  authorize("seller"),
+  validate(getProductSchema),
+  productsController.getStats,
+);
 router.get("/:id", validate(getProductSchema), productsController.getById);
 router.post(
   "/",
